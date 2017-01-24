@@ -1,0 +1,92 @@
+#!/bin/sh
+
+# Produces the usage output when the script is asked for help.
+#
+# @return string The usage text.
+usage() {
+    cat <<-_usage_statement_
+usage: git-rollup
+    -v|--branch BRANCH
+
+arguments:
+-b, --branch The branch which the branch to rollup is based on.
+
+_usage_statement_
+}
+
+# The main method that's called on script execution.
+#
+# @see usage
+main() {
+    # Exit on the first error and don't continue
+    set -e
+
+    local dotglob_enabled=$(shopt dotglob | grep on | wc -l)
+
+    # Set some environment changes by enabling dotglob matches
+    if [ ! $dotglob_enabled ]; then
+        shopt -s dotglob
+    fi
+
+    # Declare our script options
+    declare \
+        branch
+
+    while :
+    do
+        case $1 in
+            -h | --help | -\?)
+                usage
+                exit 0
+                ;;
+            -b | --branch)
+                branch=$2
+                shift 2
+                ;;
+            --) # End of all options
+                shift
+                break
+                ;;
+            -*)
+                echo "Unknown option (ignored): $1"
+                shift
+                ;;
+            *)  # no more options. Stop while loop
+                break
+                ;;
+        esac
+    done
+
+    if [ -z $branch ]; then
+        echo "The source branch (-b | --branch) option is required."
+        exit 1
+    fi
+
+    ###########################################################################
+
+    source "$(git --exec-path)/git-sh-setup"
+
+    # Get the current branch name
+    current_branch=$(git rev-parse --abbrev-ref HEAD)
+    squashed_branch="squashed/${current_branch}"
+
+    if [ $(git branch -l | grep "${squashed_branch}" | wc -l) != "0" ]; then
+        git branch -D "${squashed_branch}"
+    fi
+
+    # Create a new branch based on
+    git checkout -b "${squashed_branch}" "${branch}" \
+    && git merge --squash "${current_branch}" \
+    && git commit \
+    && git branch -M "${current_branch}"
+
+    ###########################################################################
+
+    # Revert back the dotglob shell option
+    if [ ! $dotglob_enabled ]; then
+        shopt -u dotglob
+    fi
+}
+
+# Call our main function and pass all arguments passed to the script
+main "$@"

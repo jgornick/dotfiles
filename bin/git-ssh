@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Wrapper script that reads the GIT_SSH_OPTS environment variable
+# and uses the options when using git.
+
+if [ -z "$GIT_SSH_OPTS" ]; then
+    ssh "$@"
+else
+    ssh $GIT_SSH_OPTS "$@"
+fi

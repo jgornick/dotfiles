@@ -1,0 +1,25 @@
+#!/bin/bash
+# Install specific version of Homebrew formula
+# usage example:
+# $ brew-install ssh-copy-id 6.0p1
+
+declare formula version formula_hash
+formula=$1
+version=$2
+
+cd `brew --prefix`
+git_last_commit_id=`git rev-parse --short HEAD`
+
+formula_hash=`brew versions $formula|grep $version|awk '{print $4}'`
+
+echo brew install $formula with version $version $formula_hash
+
+git pull
+git checkout $formula_hash Library/Formula/$formula.rb
+
+brew unlink $formula
+brew install $formula
+brew switch $formula $version
+git checkout $git_last_commit_id Library/Formula/$formula.rb   # reset formula
+
+cd - # got back to previous dir
