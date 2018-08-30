@@ -1,3 +1,8 @@
+# Shell prompt based on the Solarized Dark theme.
+# Screenshot: http://i.imgur.com/EkEtphC.png
+# Heavily inspired by @necolas’s prompt: https://github.com/necolas/dotfiles
+# iTerm → Profiles → Text → use 13pt Monaco with 1.1 vertical spacing.
+
 #!/usr/bin/env bash
 
 SCM_CHECK=${SCM_CHECK:=true}
@@ -318,18 +323,30 @@ else
     userStyle="${yellow}"
 fi
 
+function short_pwd {
+  local pwdLength=14
+  local newPwd="${PWD/#$HOME/~}"
+  if [ $(echo -n $newPwd | wc -c | tr -d " ") -gt $pwdLength ]
+  then
+     newPwd=$(echo -n $newPwd | awk -F '/' '{
+     print $1 "/" $2 "/.../" $(NF-1) "/" $(NF)}')
+  fi
+  echo -e "${newPwd}"
+  return
+}
+
 # Set the terminal title and prompt.
-PS1="\[\033]0;\W\007\]"; # working directory base name
-PS1+="\[\e[32m\]"
-PS1+="${highCyan}[\D{%s}] " # date/time 24-hour
-PS1+="${userStyle}\u" # username
+#PS1="\[\033]0;\W\007\]"; # working directory base name
+#PS1+="\[\e[32m\]"
+#PS1+="${highCyan}[\D{%s}] " # date/time 24-hour
+PS1="${userStyle}\u" # username
 PS1+="${white}@"
 PS1+="${purple}\h" # host
 PS1+="${white}:"
-PS1+="${green}\w" # working directory full path
-PS1+="${blue}\$(scm_prompt_info)";
-PS1+="${white} \$ "
-PS1+="\[\e[0m\]"
+PS1+="${green}\$(short_pwd)" # working directory full path
+PS1+="${blue}\$(scm_prompt_info)"
+PS1+="\n${white}\$ "
+#PS1+="\[\e[0m\]"
 export PS1;
 
 PS2="\[${yellow}\]→ \[${reset}\]";

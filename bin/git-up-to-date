@@ -5,21 +5,20 @@
 # @return string The usage text.
 usage() {
   cat <<-_usage_statement_
-Squashes all commits made in the onto branch and applies them on top of the
-ancestor branch.
+Resets the onto branch to that of ancestor, then cherry-picks commits made
+previously to bring it up-to-date.
 
-usage: git-rollup
+usage: git-up-to-date
     --help
     --ancestor BRANCH
     --onto BRANCH
 
 arguments:
--a, --ancestor BRANCH The common ancestor for the rollup. This is usually the
-                      branch you will finally be fast-fowarding to. This is
-                      required.
+-a, --ancestor BRANCH The common ancestor for the reset. This is usually the
+                      branch you will finally be landing into. This is required.
 
--o, --onto BRANCH The branch with commits to rollup (squash). Defaults to the
-                  current working branch ($(git rev-parse --abbrev-ref HEAD)).
+-o, --onto BRANCH The branch with commits to replay onto itself after the reset.
+                  Defaults to the current working branch ($(git rev-parse --abbrev-ref HEAD)).
 
 _usage_statement_
 }
@@ -28,9 +27,6 @@ _usage_statement_
 #
 # @see usage
 main() {
-  # Exit on the first error and don't continue
-  set -e
-
   local dotglob_enabled=$(shopt dotglob | grep on | wc -l)
 
   # Set some environment changes by enabling dotglob matches
@@ -84,32 +80,30 @@ main() {
 
   source "$(git --exec-path)/git-sh-setup"
 
-  # If the onto branch name isn't specified, default to the current branch
-  onto_branch="${onto:-$(git rev-parse --abbrev-ref HEAD)}"
+  # Get the current branch name
+  onto_branch=${onto:-$(git rev-parse --abbrev-ref HEAD)}
 
-  # Assign temporary sqaushed branch name
-  squashed_branch="squashed/${onto_branch}"
+  # Checkout the branch to reset
+  git checkout "${onto_branch}"
 
-  # Check if the squashed branch already exists
-  if [ $(git branch -l | grep "${squashed_branch}" | wc -l) != "0" ]; then
-      git branch -D "${squashed_branch}"
+  # Get the current HEAD commit has to revert if an error happens
+  onto_branch_head_id="$(git rev-parse HEAD)"
+
+  # Before resetting, get list of commits made to this branch
+  commits=( $(git rev-list --simplify-by-decoration -2 HEAD) )
+
+  # Reset this branch hard to ancestor
+  git reset --hard "${ancestor}"
+
+  # Cherry-pick commits back into branch.
+  git cherry-pick "${commits[1]}".."${commits[0]}"
+
+  if [ $? -ne 0 ]; then
+    git reset --hard "${onto_branch_head_id}"
   fi
 
-  # Capture logs messages used in the squashed commit
-  logs="$(git log --pretty=format:'%m [%h] %an: %s' "${ancestor}"..HEAD)"
-
-  # Create the squashed branch based on ancestor
-  git checkout -b "${squashed_branch}" "${ancestor}"
-
-  # Inside our squashed branch, take all of the commits from the onto branch and
-  # merge (sqaush) all of the changes to be staged
-  git merge --squash "${onto_branch}"
-
-  # Commit the changes with a default message of the logs
-  git commit -m "${logs}" -e
-
-  # Move the squashed branch back to the onto branch
-  git branch -M "${onto_branch}"
+  # Go back to previous branch
+  git checkout -
 
   cd "${PWD}"
 
