@@ -109,3 +109,11 @@ alias vdstr="vagrant destroy"
 alias vl="vagrant list"
 # requires vagrant-hostmanager plugin
 alias vhst="vagrant hostmanager"
+
+# yarn
+alias y="yarn"
+alias yard="yarn"
+
+# npm
+alias npmr="npm run"
+alias nr="npm run"
