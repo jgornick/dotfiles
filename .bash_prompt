@@ -323,16 +323,14 @@ else
     userStyle="${yellow}"
 fi
 
-function short_pwd {
-  local pwdLength=14
-  local newPwd="${PWD/#$HOME/~}"
-  if [ $(echo -n $newPwd | wc -c | tr -d " ") -gt $pwdLength ]
-  then
-     newPwd=$(echo -n $newPwd | awk -F '/' '{
-     print $1 "/" $2 "/.../" $(NF-1) "/" $(NF)}')
+function short_pwd () {
+  # Only show ellipses for directory trees -gt 3
+  # Otherwise use the default pwd as the current \w replacement
+  if [ $(pwd | grep -o '/' | wc -l) -gt 3 ]; then
+          pwd | cut -d'/' -f1-3 | xargs -I{} echo {}"/../${PWD##*/}"
+  else
+          pwd
   fi
-  echo -e "${newPwd}"
-  return
 }
 
 # Set the terminal title and prompt.
