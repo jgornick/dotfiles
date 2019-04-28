@@ -38,6 +38,7 @@
   br = branch
   co = checkout
   cp = cherry-pick
+  rb = rebase
 
   track = ~/bin/git-track
   rollup = ~/bin/git-rollup
@@ -50,6 +51,11 @@
   # List contributors with number of commits
   # See`git help shortlog`
   contributors = shortlog --summary --numbered
+
+  current-branch = rev-parse --abbrev-ref HEAD
+
+  delete-gone-branches = "!git show-gone-branches | xargs git branch -D"
+  delete-remote-merged-branches = "!git show-remote-merged-branches | xargs -n 1 git push origin --delete"
 
   # Find branches containing commit
   fb = "!f() { git branch -a --contains $1; }; f"
@@ -76,10 +82,17 @@
   overview = log --all --oneline --no-merges
   changelog = "!sh -c \"git log --oneline --no-merges $1..HEAD\" -"
   filelog = log -u # show changes to a file
+  my-changes = "!r() { git short $1..HEAD | grep --color=never \"${2:-$(git config user.name)}\"; }; r"
 
   # Pretty log of commits. Supports options of git log
   # https://www.kernel.org/pub/software/scm/git/docs/git-log.html#_pretty_formats
   log-pretty = log --graph --decorate --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an - %aE>%Creset' --abbrev-commit
+
+  prune-remote = "!r() { git remote prune "${1:-origin}"; }; r"
+
+  rebase-remote = "!r() { git rebase "${1:-origin}/$(git current-branch)"; }; r"
+
+  rebuild = "!r() { git commit --amend --no-edit; git push "${1:-origin}" --force-with-lease; }; r"
 
   #via http://stackoverflow.com/questions/5188320/how-can-i-get-a-list-of-git-branches-ordered-by-most-recent-commit
   recent-branches = "!git for-each-ref --count=20 --sort=-committerdate refs/heads/ --format='%(refname:short)'"
@@ -87,14 +100,20 @@
   # Show verbose output about remotes
   remotes = remote -v
 
+  reset-to-remote = "!r() { git reset --hard "${1:-origin}/$(git current-branch)"; }; r"
+
   # Remove the old tag with this name and tag the latest commit with it.
   retag = "!r() { git tag -d $1 && git push origin :refs/tags/$1 && git tag $1; }; r"
 
   # find a string in the entire git history
   search-git-history = "!r() { git rev-list --all | xargs git grep -F $1; }; r"
 
+  show-gone-branches = "!git branch -vv | awk '/origin\\/.*: gone]/{print$1}'"
+  show-remote-merged-branches = "!git branch --no-color -r --merged master | sed 's/origin\\///' | grep -v '\\*' | grep -v master | grep -v develop"
+
 [push]
   default = current
+  followTags = true
 
 [merge]
   renamelimit = 4093

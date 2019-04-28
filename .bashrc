@@ -100,12 +100,6 @@ if [ -f $(brew --prefix)/etc/bash_completion ]; then
     . $(brew --prefix)/etc/bash_completion
 fi
 
-# Lunchy Completion
-LUNCHY_DIR=$(dirname `gem which lunchy`)/../extras
-if [ -f $LUNCHY_DIR/lunchy-completion.bash ]; then
- . $LUNCHY_DIR/lunchy-completion.bash
-fi
-
 # AWS CLI Completion
 complete -C aws_completer aws
 

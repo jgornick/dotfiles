@@ -38,8 +38,15 @@ export PATH="${HOME}/bin:/usr/local/bin:/usr/local/sbin:$PATH"
 
 export GIT_SSH="${HOME}/bin/git-ssh"
 
-export MARKPATH=$HOME/.marks
+export MARKPATH="${HOME}/.marks"
 
 export NVM_DIR="${HOME}/.nvm"
 
 export NODE_OPTIONS="--max_old_space_size=4096"
+
+export ANDROID_HOME="${HOME}/Library/Android/sdk"
+export PATH="${PATH}:${ANDROID_HOME}/emulator:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/tools/bin"
+
+export GRADLE_USER_HOME="${HOME}/.gradle"
+
+export JAVA_HOME="$(/usr/libexec/java_home -v 1.8)"

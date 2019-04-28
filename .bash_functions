@@ -13,11 +13,6 @@ function marks {
     \ls -l "$MARKPATH" | tail -n +2 | sed 's/  / /g' | cut -d' ' -f9- | awk -F ' -> ' '{printf "%-10s -> %s\n", $1, $2}'
 }
 
-_completemarks() {
-    local curw=${COMP_WORDS[COMP_CWORD]}
-    local wordlist=$(find $MARKPATH -type l -exec basename {} \;)
-    COMPREPLY=($(compgen -W '${wordlist[@]}' -- "$curw"))
-    return 0
-}
-
-complete -F _completemarks j um
+##################################################################################
+function ulimit() { builtin ulimit -n 2000; }
+export -f ulimit

@@ -85,35 +85,8 @@ alias afk="/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resource
 # Reload the shell (i.e. invoke as a login shell)
 alias reload="exec $SHELL -l"
 
-# Ansible Aliases
-alias ap='ansible-playbook'
-alias apv='ansible-playbook -v'
-alias apvv='ansible-playbook -vv'
-alias apvvv='ansible-playbook -vvv'
-alias apvvvv='ansible-playbook -vvvv'
-alias avc='EDITOR="subl -w" ansible-vault create'
-alias ave='EDITOR="subl -w" ansible-vault edit'
-
-# Vagrant Aliases
-alias vup="vagrant up"
-alias vupl="vagrant up 2>&1 | tee vagrant.log"
-alias vh="vagrant halt"
-alias vs="vagrant suspend"
-alias vr="vagrant resume"
-alias vrl="vagrant reload"
-alias vssh="vagrant ssh"
-alias vst="vagrant status"
-alias vp="vagrant provision"
-alias vdstr="vagrant destroy"
-# requires vagrant-list plugin
-alias vl="vagrant list"
-# requires vagrant-hostmanager plugin
-alias vhst="vagrant hostmanager"
-
-# yarn
 alias y="yarn"
 alias yard="yarn"
 
-# npm
 alias npmr="npm run"
 alias nr="npm run"
