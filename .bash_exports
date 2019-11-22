@@ -14,9 +14,6 @@ export LESS_TERMCAP_md="${yellow}";
 # Don’t clear the screen after quitting a manual page.
 export MANPAGER='less -X';
 
-# Always enable colored `grep` output.
-export GREP_OPTIONS='--color=auto';
-
 # Path to the bash it configuration
 export BASH_IT=$HOME/.bash_it
 
@@ -43,10 +40,24 @@ export MARKPATH="${HOME}/.marks"
 export NVM_DIR="${HOME}/.nvm"
 
 export NODE_OPTIONS="--max_old_space_size=4096"
+export NODE_TLS_REJECT_UNAUTHORIZED=0
 
 export ANDROID_HOME="${HOME}/Library/Android/sdk"
-export PATH="${PATH}:${ANDROID_HOME}/emulator:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/tools/bin"
+export PATH=$PATH:$ANDROID_HOME/platform-tools/
+export PATH=$PATH:$ANDROID_HOME/tools/bin/
+export PATH=$PATH:$ANDROID_HOME/tools/
+export PATH=$PATH:$ANDROID_HOME/emulator
 
 export GRADLE_USER_HOME="${HOME}/.gradle"
 
 export JAVA_HOME="$(/usr/libexec/java_home -v 1.8)"
+
+export NODE_EXTRA_CA_CERTS=/usr/local/etc/openssl/cert.pem
+export REQUESTS_CA_BUNDLE=/usr/local/etc/openssl/cert.pem
+export CURL_CA_BUNDLE=/usr/local/etc/openssl/cert.pem
+
+export PATH="/usr/local/opt/gnu-getopt/bin:$PATH"
+export PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"
+export PATH="/usr/local/opt/gnu-tar/libexec/gnubin:$PATH"
+export PATH="/usr/local/opt/gnu-which/libexec/gnubin:$PATH"
+export PATH="/usr/local/opt/grep/libexec/gnubin:$PATH"

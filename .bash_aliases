@@ -34,8 +34,15 @@ alias sudo='sudo '
 # Stopwatch
 alias timer='echo "Timer started. Stop with Ctrl-D." && date && time cat && date'
 
+alias updatepy27='PYENV_VERSION="2.7.14" pip install --upgrade pip; PYENV_VERSION="2.7.14" pip freeze --local | grep -v ^-e | cut -d = -f 1  | PYENV_VERSION="2.7.14" xargs -n1 pip install -U'
+alias updatepy35='PYENV_VERSION="3.5.2" pip install --upgrade pip; PYENV_VERSION="3.5.2" pip freeze --local | grep -v ^-e | cut -d = -f 1  | PYENV_VERSION="3.5.2" xargs -n1 pip install -U'
+alias updatenpm='npm install -g npm; npm update -g; npm outdated -g --depth=0 --parseable | cut -d: -f4 | xargs -n 1 -I {} npm install -g {}'
+alias updatebrew='brew update; brew upgrade; brew cleanup'
+alias updatebrewcask='brew cask upgrade'
+alias updategem='gem update --system; gem update'
+
 # Get OS X Software Updates, and update installed Ruby gems, Homebrew, npm, and their installed packages
-alias update='brew update; brew upgrade; brew cleanup; npm install -g npm; npm update -g; npm outdated -g --depth=0 --parseable | cut -d: -f4 | xargs -n 1 -I {} npm install -g {}; gem update --system; gem update; pip install --upgrade pip; pip freeze --local | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U'
+alias update='updatebrew; updatebrewcask; updatenpm; updategem; updatepy27; updatepy35'
 
 # IP addresses
 alias localip="ipconfig getifaddr en0"
@@ -84,9 +91,3 @@ alias afk="/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resource
 
 # Reload the shell (i.e. invoke as a login shell)
 alias reload="exec $SHELL -l"
-
-alias y="yarn"
-alias yard="yarn"
-
-alias npmr="npm run"
-alias nr="npm run"

@@ -56,25 +56,8 @@ if [ -f "${HOME}/.bash_functions" ]; then
     . "${HOME}/.bash_functions"
 fi
 
-# enable programmable completion features (you don't need to enable
-# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
-# sources /etc/bash.bashrc).
-if ! shopt -oq posix; then
-  if [ -f /usr/share/bash-completion/bash_completion ]; then
-    . /usr/share/bash-completion/bash_completion
-  elif [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
-  fi
-fi
-
-if [ -f "${HOME}/.bash_completions" ]; then
-    . "${HOME}/.bash_completions"
-fi
-
-
 # Load NVM
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-[[ -r $NVM_DIR/bash_completion ]] && . $NVM_DIR/bash_completion
 
 # Load GVM
 [[ -s "${HOME}/.gvm/scripts/gvm" ]] && source "${HOME}/.gvm/scripts/gvm"
@@ -95,13 +78,8 @@ if which pyenv > /dev/null; then
   pyenv shell 3.5.2 2.7.14
 fi
 
-# Load Homebrew Bash Completions
-if [ -f $(brew --prefix)/etc/bash_completion ]; then
-    . $(brew --prefix)/etc/bash_completion
+if [ -f "${HOME}/.bash_completions" ]; then
+    . "${HOME}/.bash_completions"
 fi
 
-# AWS CLI Completion
-complete -C aws_completer aws
-
-# NPM Completion
-npm completion > /usr/local/etc/bash_completion.d/npm
+export COMP_WORDBREAKS=${COMP_WORDBREAKS//:}
