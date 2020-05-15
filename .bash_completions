@@ -16,6 +16,11 @@ complete -C aws_completer aws
 # NPM Completion
 npm completion > /usr/local/etc/bash_completion.d/npm
 
+# Kubernetes (kubectl) Completion
+kubectl completion bash > /usr/local/etc/bash_completion.d/kubectl
+complete -F __start_kubectl k
+complete -F __start_kubectl kcs
+
 # Lerna autocompletion.
 # https://github.com/Bash-it/bash-it/blob/master/completion/available/lerna.completion.bash
 function _lerna_completions() {
