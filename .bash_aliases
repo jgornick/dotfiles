@@ -34,29 +34,17 @@ alias sudo='sudo '
 # Stopwatch
 alias timer='echo "Timer started. Stop with Ctrl-D." && date && time cat && date'
 
-alias updatepy27='PYENV_VERSION="2.7.14" pip install --upgrade pip; PYENV_VERSION="2.7.14" pip freeze --local | grep -v ^-e | cut -d = -f 1  | PYENV_VERSION="2.7.14" xargs -n1 pip install -U'
-alias updatepy35='PYENV_VERSION="3.5.2" pip install --upgrade pip; PYENV_VERSION="3.5.2" pip freeze --local | grep -v ^-e | cut -d = -f 1  | PYENV_VERSION="3.5.2" xargs -n1 pip install -U'
+alias updatepy3='pip install --upgrade pip; pip freeze --local | grep -v ^-e | cut -d = -f 1  | xargs -n1 pip install -U'
 alias updatenpm='npm install -g npm; npm update -g; npm outdated -g --depth=0 --parseable | cut -d: -f4 | xargs -n 1 -I {} npm install -g {}'
 alias updatebrew='brew update; brew upgrade; brew cleanup'
-alias updatebrewcask='brew cask upgrade'
+alias updatebrewcask='brew upgrade --cask'
 alias updategem='gem update --system; gem update'
 
 # Get OS X Software Updates, and update installed Ruby gems, Homebrew, npm, and their installed packages
-alias update='updatebrew; updatebrewcask; updatenpm; updategem; updatepy27; updatepy35'
-
-# IP addresses
-alias localip="ipconfig getifaddr en0"
-alias ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\{3\}[0-9]\+\)\|[a-fA-F0-9:]\+\)' | awk '{ sub(/inet6? (addr:)? ?/, \"\"); print }'"
+alias update='updatebrew; updatebrewcask; updatenpm; updategem; updatepy3'
 
 # Flush Directory Service cache
 alias flush="dscacheutil -flushcache && killall -HUP mDNSResponder"
-
-# Clean up LaunchServices to remove duplicates in the “Open With” menu
-alias lscleanup="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
-
-# View HTTP traffic
-alias sniff="sudo ngrep -d 'en1' -t '^(GET|POST) ' 'tcp and port 80'"
-alias httpdump="sudo tcpdump -i en1 -n -s 0 -w - | grep -a -o -E \"Host\: .*|GET \/.*\""
 
 # Canonical hex dump; some systems have this symlinked
 command -v hd > /dev/null || alias hd="hexdump -C"
@@ -70,24 +58,8 @@ command -v sha1sum > /dev/null || alias sha1sum="shasum"
 # Recursively delete `.DS_Store` files
 alias cleanup="find . -type f -name '*.DS_Store' -ls -delete"
 
-# Show/hide hidden files in Finder
-alias show="defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder"
-alias hide="defaults write com.apple.finder AppleShowAllFiles -bool false && killall Finder"
-
-# Hide/show all desktop icons (useful when presenting)
-alias hidedesktop="defaults write com.apple.finder CreateDesktop -bool false && killall Finder"
-alias showdesktop="defaults write com.apple.finder CreateDesktop -bool true && killall Finder"
-
-# Disable Spotlight
-alias spotoff="sudo mdutil -a -i off"
-# Enable Spotlight
-alias spoton="sudo mdutil -a -i on"
-
 # PlistBuddy alias, because sometimes `defaults` just doesn’t cut it
 alias plistbuddy="/usr/libexec/PlistBuddy"
-
-# Lock the screen (when going AFK)
-alias afk="/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resources/CGSession -suspend"
 
 # Reload the shell (i.e. invoke as a login shell)
 alias reload="exec $SHELL -l"
