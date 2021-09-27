@@ -48,7 +48,7 @@ com.microsoft.VSCodeInsiders .less all
 com.microsoft.VSCodeInsiders .log all
 com.microsoft.VSCodeInsiders .m all
 com.microsoft.VSCodeInsiders .manifest all
-com.uranusjr.macdown .md all
+com.microsoft.VSCodeInsiders .md all
 com.microsoft.VSCodeInsiders .mm all
 com.microsoft.VSCodeInsiders .msass all
 com.microsoft.VSCodeInsiders .opml all

@@ -14,13 +14,6 @@ export LESS_TERMCAP_md="${yellow}";
 # Don’t clear the screen after quitting a manual page.
 export MANPAGER='less -X';
 
-# Path to the bash it configuration
-export BASH_IT=$HOME/.bash_it
-
-# Lock and Load a custom theme file
-# location /.bash_it/themes/
-unset BASH_IT_THEME
-
 # Don't check mail when opening terminal.
 unset MAILCHECK
 
@@ -31,16 +24,57 @@ export SCM_CHECK=true
 export EDITOR="vim"
 export GIT_EDITOR="vim"
 
-export PATH="${HOME}/bin:/usr/local/bin:/usr/local/sbin:$PATH"
-
+# Use our git-ssh wrapper for greater control when git calls ssh
+# @see https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables#_miscellaneous
 export GIT_SSH="${HOME}/bin/git-ssh"
+
+
+# set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/bin" ] ; then
+    export PATH="$HOME/bin:$PATH"
+fi
+
+# set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/.local/bin" ] ; then
+    export PATH="$HOME/.local/bin:$PATH"
+fi
 
 export MARKPATH="${HOME}/.marks"
 
-export NVM_DIR="${HOME}/.nvm"
+export PATH="/usr/local/opt/gnu-getopt/bin:$PATH"
+export PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"
+export PATH="/usr/local/opt/gnu-tar/libexec/gnubin:$PATH"
+export PATH="/usr/local/opt/gnu-which/libexec/gnubin:$PATH"
+export PATH="/usr/local/opt/grep/libexec/gnubin:$PATH"
 
+# Setup nvm and node/npm versions
+export NODE_VERSION="${NODE_VERSION:-12.21.0}"
+export NPM_VERSION="${NPM_VERSION:-6.14.13}"
+export NVM_DIR="${NVM_DIR:-"${HOME}/.nvm"}"
+export NVM_INSTALL_DIR="${NVM_INSTALL_DIR:-/usr/local/opt/nvm}"
 export NODE_OPTIONS="--max_old_space_size=4096"
-export NODE_TLS_REJECT_UNAUTHORIZED=0
+
+# Setup yvm and yarn version
+export YARN_VERSION="${YARN_VERSION:-1.22.11}"
+export YVM_INSTALL_DIR="${YVM_INSTALL_DIR:-"/usr/local/opt/yvm"}"
+export YARN_NPM_AUTH_IDENT="$(cat ~/.npmrc | grep -o '_auth=.*' | sed 's/_auth=//g')"
+
+# Setup rbenv in path and specify ruby version
+export RUBY_VERSION="${RUBY_VERSION:-2.7.4}"
+export RBENV_VERSION="${RUBY_VERSION}"
+export RBENV_ROOT="${RBENV_ROOT:-"${HOME}/.rbenv"}"
+export RBENV_INSTALL_DIR="${RBENV_INSTALL_DIR:-/usr/local/bin}"
+export PATH="$RBENV_ROOT/shims:$PATH"
+
+# Setup pyenv in path and specify python version
+export PYTHON_VERSION="${PYTHON_VERSION:-3.9.7}"
+export PYENV_VERSION="${PYTHON_VERSION}"
+export PYENV_ROOT="${PYENV_ROOT:-"${HOME}/.pyenv"}"
+export PYENV_INSTALL_DIR="${PYENV_INSTALL_DIR:-/usr/local/bin}"
+export PATH="$PYENV_ROOT/shims:$PATH"
+
+# The java version to install via sdkman
+export JAVA_VERSION="${JAVA_VERSION:-11.0.11.hs-adpt}"
 
 export ANDROID_HOME="${HOME}/Library/Android/sdk"
 export PATH=$PATH:$ANDROID_HOME/platform-tools/
@@ -50,14 +84,4 @@ export PATH=$PATH:$ANDROID_HOME/emulator
 
 export GRADLE_USER_HOME="${HOME}/.gradle"
 
-export JAVA_HOME="$(/usr/libexec/java_home -v 1.8)"
-
-export NODE_EXTRA_CA_CERTS=/usr/local/etc/openssl/cert.pem
-export REQUESTS_CA_BUNDLE=/usr/local/etc/openssl/cert.pem
-export CURL_CA_BUNDLE=/usr/local/etc/openssl/cert.pem
-
-export PATH="/usr/local/opt/gnu-getopt/bin:$PATH"
-export PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"
-export PATH="/usr/local/opt/gnu-tar/libexec/gnubin:$PATH"
-export PATH="/usr/local/opt/gnu-which/libexec/gnubin:$PATH"
-export PATH="/usr/local/opt/grep/libexec/gnubin:$PATH"
+export COMP_WORDBREAKS=${COMP_WORDBREAKS//:}

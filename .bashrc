@@ -16,32 +16,20 @@ then
   esac
 fi
 
-# check the window size after each command and, if necessary,
-# update the values of LINES and COLUMNS.
-shopt -s checkwinsize
-
-# Case-insensitive globbing (used in pathname expansion)
-shopt -s nocaseglob
-
-# Append to the Bash history file, rather than overwriting it
-shopt -s histappend
-
-# Autocorrect typos in path names when using `cd`
-shopt -s cdspell
-
-# Enable some Bash 4 features when possible:
-# * `autocd`, e.g. `**/qux` will enter `./foo/bar/baz/qux`
-# * Recursive globbing, e.g. `echo **/*.txt`
-for option in autocd globstar; do
+# Enable some Bash features when possible:
+# * `autocd`: `**/qux` will enter `./foo/bar/baz/qux`
+# * `cdspell`: Autocorrect typos in path names when using `cd`
+# * `checkwinsize`: check the window size after each command and, if necessary,
+#   update the values of LINES and COLUMNS.
+# * `globstar`: Recursive globbing, e.g. `echo **/*.txt`
+# * `histappend`: Append to the Bash history file, rather than overwriting it
+# * `nocaseglob`: Case-insensitive globbing (used in pathname expansion)
+for option in autocd cdspell checkwinsize globstar histappend nocaseglob; do
     shopt -s "$option" 2> /dev/null
 done;
 
 if [ -f "${HOME}/.bash_exports" ]; then
     . "${HOME}/.bash_exports"
-fi
-
-if [ -f "${BASH_IT}/bash_it.sh" ]; then
-  . "${BASH_IT}/bash_it.sh"
 fi
 
 if [ -f "${HOME}/.bash_prompt" ]; then
@@ -57,29 +45,33 @@ if [ -f "${HOME}/.bash_functions" ]; then
 fi
 
 # Load NVM
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+[ -s "${NVM_INSTALL_DIR}/nvm.sh" ] && . "${NVM_INSTALL_DIR}/nvm.sh"
+nvm alias default "${NODE_VERSION}"
 
-# Load GVM
-[[ -s "${HOME}/.gvm/scripts/gvm" ]] && source "${HOME}/.gvm/scripts/gvm"
+# Load YVM
+[ -r "${YVM_INSTALL_DIR}/yvm.sh" ] && . "${YVM_INSTALL_DIR}/yvm.sh"
+yvm alias default "${YARN_VERSION}"
 
 # Load rbenv
 if which rbenv > /dev/null; then
   eval "$(rbenv init -)";
-  rbenv global 2.5.0
-  rbenv local 2.5.0
-  rbenv shell 2.5.0
+  rbenv global "${RUBY_VERSION}"
+  rbenv local "${RUBY_VERSION}"
+  rbenv shell "${RUBY_VERSION}"
 fi
 
 # Load pyenv
 if which pyenv > /dev/null; then
   eval "$(pyenv init -)";
-  pyenv global 3.5.2
-  pyenv local 3.5.2
-  pyenv shell 3.5.2 2.7.14
+  pyenv global "${PYTHON_VERSION}"
+  pyenv local "${PYTHON_VERSION}"
+  pyenv shell "${PYTHON_VERSION}"
 fi
 
 if [ -f "${HOME}/.bash_completions" ]; then
-    . "${HOME}/.bash_completions"
+  . "${HOME}/.bash_completions"
 fi
 
-export COMP_WORDBREAKS=${COMP_WORDBREAKS//:}
+#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR="${HOME}/.sdkman"
+[[ -s "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && source "${SDKMAN_DIR}/bin/sdkman-init.sh"
