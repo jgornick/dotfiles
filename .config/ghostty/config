@@ -1,0 +1,17 @@
+theme = Catppuccin Frappe
+
+font-size = 16
+font-family = Source Code Pro
+font-style = Regular
+font-style-bold = Black
+font-style-italic = Italic
+font-style-bold-italic = Black Italic
+font-thicken = true
+
+adjust-cell-height = 2
+adjust-cursor-height = 2
+adjust-underline-position = 8
+adjust-underline-thickness = 2
+
+keybind = global:ctrl+`=toggle_visibility
+

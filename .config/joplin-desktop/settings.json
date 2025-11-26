@@ -1,0 +1,72 @@
+{
+	"$schema": "https://joplinapp.org/schema/settings.json",
+	"altInstanceId": "",
+	"editor.codeView": true,
+	"locale": "en_US",
+	"dateFormat": "YYYY-MM-DD",
+	"ocr.enabled": false,
+	"theme": 2,
+	"themeAutoDetect": false,
+	"notes.sortOrder.field": "user_updated_time",
+	"editor.autocompleteMarkup": false,
+	"editor.enableHtmlToMarkdownBanner": false,
+	"editor.enableTextPatterns": false,
+	"notes.sortOrder.reverse": true,
+	"notes.sortOrder.buttonsVisible": false,
+	"notes.perFieldReverse": {
+		"user_updated_time": true,
+		"user_created_time": true,
+		"title": false,
+		"order": false,
+		"todo_due": true,
+		"todo_completed": true
+	},
+	"trackLocation": false,
+	"markdown.plugin.softbreaks": false,
+	"markdown.plugin.typographer": false,
+	"markdown.plugin.fountain": true,
+	"markdown.plugin.sub": true,
+	"markdown.plugin.sup": true,
+	"markdown.plugin.deflist": true,
+	"markdown.plugin.abbr": true,
+	"markdown.plugin.emoji": true,
+	"markdown.plugin.insert": true,
+	"markdown.plugin.multitable": true,
+	"showTrayIcon": false,
+	"style.editor.fontSize": 16,
+	"style.editor.fontFamily": "",
+	"style.editor.monospaceFontFamily": "",
+	"style.viewer.fontFamily": "",
+	"ui.layout": {
+		"key": "root",
+		"children": [
+			{
+				"key": "sideBar",
+				"width": 270,
+				"visible": true
+			},
+			{
+				"key": "noteList",
+				"width": 311,
+				"visible": true
+			},
+			{
+				"key": "editor",
+				"visible": true
+			}
+		],
+		"visible": true
+	},
+	"autoUpdateEnabled": true,
+	"noteVisiblePanes": [
+		"editor",
+		"viewer"
+	],
+	"editor.legacyMarkdown": false,
+	"spellChecker.languages": [
+		"en-US"
+	],
+	"windowContentZoomFactor": 120,
+	"featureFlag.autoUpdaterServiceEnabled": false,
+	"featureFlag.richText.useStrictContentSecurityPolicy": false
+}

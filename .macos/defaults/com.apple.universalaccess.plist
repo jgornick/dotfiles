@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>History</key>
+	<dict>
+		<key>MouseKeys</key>
+		<array>
+			<dict>
+				<key>Date</key>
+				<string>2025-10-21 09:44:39</string>
+				<key>Reason</key>
+				<string>Reset</string>
+				<key>State</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>Date</key>
+				<string>2025-10-21 09:44:47</string>
+				<key>Reason</key>
+				<string>Reset</string>
+				<key>State</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>Date</key>
+				<string>2025-10-21 09:44:47</string>
+				<key>Reason</key>
+				<string>Reset</string>
+				<key>State</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>Date</key>
+				<string>2025-10-21 09:45:12</string>
+				<key>Reason</key>
+				<string>Reset</string>
+				<key>State</key>
+				<false/>
+			</dict>
+		</array>
+	</dict>
+	<key>closeViewHotkeysEnabled</key>
+	<false/>
+	<key>closeViewZoomDisplayID</key>
+	<integer>0</integer>
+	<key>closeViewZoomFactor</key>
+	<real>1</real>
+	<key>login</key>
+	<false/>
+	<key>sessionChange</key>
+	<false/>
+</dict>
+</plist>

@@ -1,0 +1,6 @@
+[user]
+  name = Joe Gornick
+  email = joe@joegornick.com
+
+[core]
+  sshCommand = "ssh -vF ~/.ssh/config.oss"

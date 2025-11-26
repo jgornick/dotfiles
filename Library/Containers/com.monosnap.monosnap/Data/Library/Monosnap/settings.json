@@ -1,0 +1,146 @@
+{
+  "Video" : {
+    "Quality" : "AVCaptureSessionPresetHigh",
+    "Capture Mouse Clicks" : false,
+    "Capture Mouse Cursor" : true,
+    "Framerate" : 30
+  },
+  "Advanced" : {
+    "Image File Format" : 1,
+    "open from clipboard" : true,
+    "Filename Template" : "Screenshot-%Y-%m-%d %H-%M-%S",
+    "Video File Format" : 0,
+    "DragAndDropCopyFlags" : 7,
+    "Always Save" : false,
+    "icloud actions" : 0,
+    "GIF Frames per second" : 10,
+    "ClipboardCopyFlags" : 1,
+    "Screenshots only" : false,
+    "Apply template to opened files" : false,
+    "Always Save Movie" : false,
+    "Copy image format clipboard" : 1,
+    "GIF Image quality" : 100,
+    "Drag and drop image format" : 1,
+    "JPEG Quality" : 100,
+    "Shrink Retina" : false
+  },
+  "System and App Info" : {
+    "Prev version" : "6.36 (125)",
+    "Launch Count" : 4,
+    "Current Version" : "6.36"
+  },
+  "Monosnap Hotkeys" : {
+    "ImageFromClipBoard" : {
+      "Active" : false
+    },
+    "Capture Fullscreen Delayed" : {
+      "Active" : false
+    },
+    "Record\/Pause" : {
+      "Active" : false
+    },
+    "Capture screencast" : {
+      "Active" : false
+    },
+    "Capture previous area" : {
+      "Active" : false
+    },
+    "Capture previous area with attach" : {
+      "Active" : false
+    },
+    "Capture Area And Upload" : {
+      "Active" : false
+    },
+    "Stop" : {
+      "Active" : false
+    },
+    "Capture Fullscreen" : {
+      "Active" : false
+    },
+    "Arrow" : {
+      "Active" : false
+    },
+    "Open Editor" : {
+      "Active" : false
+    },
+    "hotkeyFullscreen" : {
+      "Active" : false
+    },
+    "Capture Frozen Area" : {
+      "Active" : false
+    },
+    "Capture Area" : {
+      "Active" : true,
+      "Mask" : 1572864,
+      "Code" : 23,
+      "Characters" : "5"
+    },
+    "Rectangle" : {
+      "Active" : false
+    }
+  },
+  "Image Editor" : {
+    "Shadow" : true,
+    "Color" : "FF0000",
+    "Primitive" : "btnEditor_arrow",
+    "Line Width" : 12,
+    "hightLight" : true,
+    "Drawing Type" : "Solid"
+  },
+  "Appearance" : {
+    "Dont show notif" : false,
+    "Show tooltip editor" : true,
+    "Lite Mode" : false,
+    "Highlight Windows" : true,
+    "Show Startup Tooltip" : true,
+    "Show animation progress" : false,
+    "Window Shadow" : true,
+    "Show Magnifier" : true,
+    "Image shadow" : false,
+    "Realtime Crop" : true,
+    "Upload button type" : 0,
+    "Simple share window" : false,
+    "shot on click" : true,
+    "Show Tooltip" : true
+  },
+  "InApp" : {
+    "InApp Was Purchased Before" : false,
+    "Is Clicked On Menu Ads" : false
+  },
+  "Fonts" : {
+    "fontsPathes0" : "\/Applications\/Monosnap.app\/Contents\/Resources\/DroidSans-Bold.ttf",
+    "fonts3" : "",
+    "fonts1" : "DroidSansFallback",
+    "fontsPathes3" : "",
+    "fontsPathes1" : "\/Applications\/Monosnap.app\/Contents\/Resources\/DroidSansFallback.ttf",
+    "fontsPathes2" : "",
+    "fonts0" : "DroidSans-Bold",
+    "fonts2" : ""
+  },
+  "Locations" : {
+    "Save Directory" : "\/Users\/joe\/Downloads"
+  },
+  "Accounts" : {
+    "Upload service" : 0,
+    "Default upload service" : 0
+  },
+  "General" : {
+    "allowDefaultBrowser" : false,
+    "Google drive domain links" : false,
+    "after upload" : 0,
+    "slack team name" : "",
+    "open in browser" : false,
+    "Dropbox links" : false,
+    "short links" : false,
+    "Apply OCR" : false,
+    "start at launch" : true,
+    "close after upload" : true,
+    "open in slack" : true,
+    "after screenshot" : 0,
+    "show links" : "YES",
+    "show hint" : true,
+    "sound effects" : false,
+    "Google drive links" : false,
+    "external image editor" : "\/System\/Applications\/Preview.app"
+  }
+}
