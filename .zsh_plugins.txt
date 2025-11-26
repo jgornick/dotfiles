@@ -1,0 +1,16 @@
+# Completions
+mattmc3/ez-compinit
+zsh-users/zsh-completions
+zsh-users/zsh-autosuggestions
+lukechilds/zsh-better-npm-completion
+
+# Style
+zpm-zsh/colors
+zdharma-continuum/fast-syntax-highlighting
+
+# Tools
+zpm-zsh/bookmarks
+zsh-users/zsh-history-substring-search
+
+
+

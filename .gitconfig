@@ -1,6 +1,6 @@
 [user]
   name = Joe Gornick
-  email = joe@joegornick.com
+	email = joe@joegornick.com
 
 [color]
   branch = auto
@@ -37,76 +37,67 @@
   st = status
   br = branch
   co = checkout
-  cp = cherry-pick
+  chp = cherry-pick
   rb = rebase
+  df = diff
+  dfs = df --staged
 
-  track = ~/bin/git-track
-  rollup = ~/bin/git-rollup
+  # Amend to last commit.
+  ca = commit --amend
+  # Amend without hooks.
+  canv = ca --no-verify
+  # Amend without hooks and edit.
+  canvne = canv --no-edit
+  # Amend, even empty, without hooks and edit. Useful to re-hash last commit.
+  canvneae = canvne --allow-empty
+
+  # Force commit (re-hash) and just push
+  rebuild = "!r() { git canvneae; git push "${1:-origin}" --force-with-lease --no-verify; }; r"
+
+  # Add tracked and rebuild
+  ar = ! git add -u && git rebuild
+  # Just push
+  pof = push origin --force-with-lease
+  # Just push without hooks
+  ponvf = pof --no-verify
 
   # List aliases
-  ar = ! git add -u && git rebuild
-
   aliases = ! git config --get-regexp ^alias\\. | sed -e s/^alias\\.// -e s/\\ /\\ =\\ /
 
   # Amend changes to a any commit
   # https://stackoverflow.com/questions/1186535/how-to-modify-a-specified-commit/48999882#48999882
-  amend-to = "!f() { SHA=`git rev-parse \"$1\"`; git commit --fixup \"$SHA\" && GIT_SEQUENCE_EDITOR=true git rebase --interactive --autosquash \"$SHA^\"; }; f"
+  amend-to = "!f() { SHA=`git rev-parse \"$1\"`; git stash -uk && git commit --fixup \"$SHA\" && GIT_SEQUENCE_EDITOR=true git rebase --interactive --autosquash \"$SHA^\" && git stash pop; }; f"
 
-  branches = for-each-ref --sort=-committerdate --format=\"%(color:blue)%(authordate:relative)\t%(color:red)%(authorname)\t%(color:white)%(color:bold)%(refname:short)\" refs/remotes
-
-  # List contributors with number of commits
-  # See`git help shortlog`
-  contributors = shortlog --summary --numbered
-
+  # Get current branch
   current-branch = rev-parse --abbrev-ref HEAD
-
-  delete-gone-branches = "!git show-gone-branches | xargs git branch -D"
-  delete-remote-merged-branches = "!git show-remote-merged-branches | xargs -n 1 git push origin --delete"
 
   # Find branches containing commit
   fb = "!f() { git branch -a --contains $1; }; f"
-
   # Find commits by source code
   fc = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short -S$1; }; f"
-
   # Find commits by commit message
   fm = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short --grep=$1; }; f"
-
   # Find tags containing commit
   ft = "!f() { git describe --always --contains $1; }; f"
 
-  # Switch to a branch, creating it if necessary
-  # Same as chb - left for BC.
-  go = "!f() { git checkout -b \"$1\" 2> /dev/null || git checkout \"$1\"; }; f"
-
-  # log
-  l = log --graph --decorate --date=short
-  changes = log --pretty=format:\"%h %cr %cn %Cgreen%s%Creset\" --name-status
-  short = log --pretty=format:\"%h %cr %cn %Cgreen%s%Creset\"
-  simple = log --pretty=format:\" * %s\"
-  shortnocolor = log --pretty=format:\"%h %cr %cn %s\"
-  overview = log --all --oneline --no-merges
-  changelog = "!sh -c \"git log --oneline --no-merges $1..HEAD\" -"
-  filelog = log -u # show changes to a file
-  my-changes = "!r() { git short $1..HEAD | grep --color=never \"${2:-$(git config user.name)}\"; }; r"
-
-  # Pretty log of commits. Supports options of git log
-  # https://www.kernel.org/pub/software/scm/git/docs/git-log.html#_pretty_formats
-  log-pretty = log --graph --decorate --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an - %aE>%Creset' --abbrev-commit
-
   prune-remote = "!r() { git remote prune "${1:-origin}"; }; r"
-
-  rebase-remote = "!r() { git rebase "${1:-origin}/$(git current-branch)"; }; r"
-
-  rebuild = "!r() { git commit --amend --no-edit --allow-empty; git push "${1:-origin}" --force-with-lease --no-verify; }; r"
+  prune-remote-tags = "fetch origin --prune 'refs/tags/*:refs/tags/*'"
 
   #via http://stackoverflow.com/questions/5188320/how-can-i-get-a-list-of-git-branches-ordered-by-most-recent-commit
-  recent-branches = "!git for-each-ref --count=20 --sort=-committerdate refs/heads/ --format='%(refname:short)'"
+  recent-branches = "!git branch --sort=-committerdate --format='%(refname:short)'"
+  recent-remote-branches = "!git branch -r --sort=-committerdate --format='%(refname:short)'"
 
   # Show verbose output about remotes
   remotes = remote -v
 
-  reset-to-remote = "!r() { git reset --hard "${1:-origin}/$(git current-branch)"; }; r"
+  # Reset the current branch to the remote
+  reset-to-remote = "!r() { git fetch; git reset --hard "${1:-origin}/$(git current-branch)"; }; r"
+
+  # Diff the current branch to the remote
+  diff-with-remote = "!r() { git fetch; git diff "$(git current-branch)" "${1:-origin}/$(git current-branch)"; }; r"
+
+  # Rebase the current branch to the remote
+  rebase-remote = "!r() { git fetch; git rebase "${1:-origin}/$(git current-branch)"; }; r"
 
   # Remove the old tag with this name and tag the latest commit with it.
   retag = "!r() { git tag -d $1 && git push origin :refs/tags/$1 && git tag $1; }; r"
@@ -115,17 +106,29 @@
   search-git-history = "!r() { git rev-list --all | xargs git grep -F $1; }; r"
 
   show-gone-branches = "!git branch -vv | awk '/origin\\/.*: gone]/{print$1}'"
-  show-remote-merged-branches = "!git branch --no-color -r --merged master | sed 's/origin\\///' | grep -v '\\*' | grep -v master | grep -v develop"
+  delete-gone-branches = "!git show-gone-branches | xargs git branch -D"
 
-  find-merge = "!sh -c 'commit=$0 && branch=${1:-HEAD} && (git rev-list $commit..$branch --ancestry-path | cat -n; git rev-list $commit..$branch --first-parent | cat -n) | sort -k2 -s | uniq -f1 -d | sort -n | tail -1 | cut -f2'"
-  show-merge = "!sh -c 'merge=$(git find-merge $0 $1) && [ -n \"$merge\" ] && git show $merge'"
+  show-remote-merged-branches = "!git branch --no-color -r --merged main | sed 's/origin\\///' | grep -v '\\*' | grep -v main | grep -v next | grep -v next-major"
+  delete-remote-merged-branches = "!git show-remote-merged-branches | xargs -n 1 git push origin --delete"
+
+  # Unstage staged files
+  unstage = restore --staged
+
+  # git log --pretty=format:'%m [%h] %an: %s' "${2:-origin}/$(git current-branch)"..HEAD
+
+  oldest-ancestor = !zsh -c 'diff -u <(git rev-list --first-parent "${1:-main}") <(git rev-list --first-parent "${2:-HEAD}") | sed -ne \"s/^ //p\" | head -1' -
+
+  # Show the current git user branches
+  my-branches = "!f() { git branch --sort=-committerdate --format=\"%(committerdate:short) | %(refname:short) | %(committername)\" \"$@\" | grep \"$(git config user.name)\" | less; }; f"
 
 [push]
   default = current
-  followTags = true
 
 [merge]
   renamelimit = 4093
 
 [init]
   defaultBranch = main
+
+[includeIf "gitdir:~/Projects/oss/"]
+  path = ~/.gitconfig.oss
