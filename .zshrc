@@ -61,7 +61,7 @@ export ANDROID_AVD_NAME="--pixel_7_api_34"
 if ! which nvm > /dev/null; then
   if [ -s "${NVM_INSTALL_DIR}/nvm.sh" ]; then
     source "${NVM_INSTALL_DIR}/nvm.sh" --no-use
-    nvm use default > /dev/null
+    nvm use --silent default
   fi
 fi
 

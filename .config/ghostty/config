@@ -13,5 +13,6 @@ adjust-cursor-height = 2
 adjust-underline-position = 8
 adjust-underline-thickness = 2
 
+initial-window = true
 keybind = global:ctrl+`=toggle_visibility
 

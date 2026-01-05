@@ -3,4 +3,4 @@
   email = joe@joegornick.com
 
 [core]
-  sshCommand = "ssh -vF ~/.ssh/config.oss"
+  sshCommand = "ssh -F ~/.ssh/config.oss"
