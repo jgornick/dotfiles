@@ -16,3 +16,4 @@ adjust-underline-thickness = 2
 initial-window = true
 keybind = global:ctrl+`=toggle_visibility
 
+shell-integration-features = ssh-env,ssh-terminfo
