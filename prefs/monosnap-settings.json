@@ -112,14 +112,14 @@
     "Is Clicked On Menu Ads" : false
   },
   "Fonts" : {
-    "fontsPathes3" : "",
-    "fontsPathes2" : "",
-    "fonts0" : "DroidSans-Bold",
-    "fontsPathes0" : "\/Applications\/Monosnap.app\/Contents\/Resources\/DroidSans-Bold.ttf",
-    "fontsPathes1" : "\/Applications\/Monosnap.app\/Contents\/Resources\/DroidSansFallback.ttf",
     "fonts2" : "",
-    "fonts3" : "",
-    "fonts1" : "DroidSansFallback"
+    "fontsPathes2" : "",
+    "fontsPathes1" : "\/Applications\/Monosnap.app\/Contents\/Resources\/DroidSansFallback.ttf",
+    "fontsPathes0" : "\/Applications\/Monosnap.app\/Contents\/Resources\/DroidSans-Bold.ttf",
+    "fontsPathes3" : "",
+    "fonts0" : "DroidSans-Bold",
+    "fonts1" : "DroidSansFallback",
+    "fonts3" : ""
   },
   "Locations" : {
     "Save Directory" : "\/Users\/joe\/Downloads"

@@ -5,23 +5,26 @@ repository. Read README.md first for the human-facing overview.
 
 ## What this repo is
 
-A **chezmoi source directory** for Joe's macOS dotfiles, shared across three
-near-identical MacBooks (work, personal M2, personal M4). The repo is
-**public** (github.com/jgornick/dotfiles). Files here are *rendered/deployed*
-into `$HOME` by chezmoi — editing a file in this repo does **not** change the
-live machine until `chezmoi apply` runs, and live edits don't reach the repo
-until `chezmoi re-add`.
+A **chezmoi source directory** for macOS dotfiles shared across multiple
+Macs. The repo is **public**. Files here are *rendered/deployed* into `$HOME`
+by chezmoi — editing a file in this repo does **not** change the live machine
+until `chezmoi apply` runs, and live edits don't reach the repo until
+`chezmoi re-add`.
 
 ## Hard rules
 
-1. **Never `git push` unless Joe explicitly asks in the current
+1. **Never `git push` unless the repo owner explicitly asks in the current
    conversation.** Local commits are fine.
-2. **Never let secrets into the repo.** It's public. Machine-local secret
-   holders that must stay unmanaged: `~/.zshrc.local` (e.g. `SECRET_ENV`),
-   `~/.ssh/config.local` (home-lab hosts/IPs), `~/.npmrc` (npm tokens),
-   Joplin's `api.token`/`sync.*` (preserved by the modify_ script — never add
-   them to its managed overlay). Run `gitleaks dir .` when in doubt;
-   pre-commit runs gitleaks on every commit regardless.
+2. **Never let secrets or personal details into the repo.** It's public.
+   Machine-local files that must stay unmanaged: `~/.zshrc.local`,
+   `~/.ssh/config.local`, `~/.npmrc`, and Joplin's `api.token`/`sync.*` keys
+   (preserved by the modify_ script — never add them to its managed overlay).
+   This covers more than credentials: private hostnames, internal IPs,
+   employer usernames or IDs, and machine inventories don't belong here
+   either. Run `gitleaks dir .` when in doubt; pre-commit runs gitleaks on
+   every commit regardless. Note that app-pref snapshots in `prefs/` can
+   carry personal data from the *apps* (e.g. folder-permission paths) —
+   inspect them after re-exporting.
 3. **Never blind-apply onto a machine.** Live `$HOME` files drift from the
    repo (each machine has real local state). Always `chezmoi diff` and
    reconcile per file before `chezmoi apply`. The same applies in reverse:
@@ -78,14 +81,7 @@ without applying. For a fresh-machine simulation:
 - VS Code ≥ 1.131 has Copilot Chat built in; `vscode "github.copilot*"`
   Brewfile entries fail permanently — they were removed deliberately.
 - mackup 0.11+ removed the `uninstall` subcommand; this repo no longer uses
-  mackup at all (fully migrated 2026-08-06).
+  mackup at all.
 - `setup.sh` fetches the Brewfile from raw GitHub at
   `master/private_dot_Brewfile` — if the source layout moves, update that
   path and the local fallback in `setup.sh`.
-
-## Current state (2026-08-06)
-
-Branch `chezmoi-migration` holds the migration (3 commits ahead of
-origin/master, **unpushed by request**). The personal M2 is migrated and
-validated; M4 and the work machine are rolled out only after Joe okays a
-push, following README's "Rolling out to an existing machine".

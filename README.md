@@ -1,7 +1,7 @@
 # dotfiles
 
 macOS dotfiles managed with [chezmoi](https://www.chezmoi.io/), shared across
-three near-identical machines: **work**, **personal M2**, and **personal M4**.
+multiple Macs.
 
 ## How this repo works
 
@@ -30,8 +30,8 @@ Special pieces:
 - **`dot_config/joplin-desktop/modify_private_settings.json`** — merges synced
   Joplin settings onto the live file while preserving the machine-local
   `api.token` and `sync.*` keys, so they never enter this (public) repo.
-- **`.chezmoiignore`** — keeps repo-only files (`README.md`, `PACKAGES.md`,
-  `setup.sh`, `prefs/`) out of `$HOME`.
+- **`.chezmoiignore`** — keeps repo-only files (`README.md`, `AGENTS.md`,
+  `PACKAGES.md`, `setup.sh`, `prefs/`) out of `$HOME`.
 - **`.pre-commit-config.yaml`** — gitleaks scans every commit for secrets.
 
 ## Machine-local files (never committed)
@@ -40,8 +40,8 @@ Secrets and per-machine overrides live outside chezmoi entirely:
 
 | File | Purpose |
 |------|---------|
-| `~/.zshrc.local` | sourced at the end of `.zshrc` (e.g. `SECRET_ENV`) |
-| `~/.ssh/config.local` | `Include`d from `~/.ssh/config` (home-lab hosts, colima) |
+| `~/.zshrc.local` | sourced at the end of `.zshrc`; machine-local env vars and secrets |
+| `~/.ssh/config.local` | `Include`d from `~/.ssh/config`; private hosts |
 | `~/.npmrc` | written by `npm login`; holds auth tokens |
 | `~/.config/chezmoi/chezmoi.toml` | points chezmoi at this repo as its source |
 
@@ -92,16 +92,16 @@ chezmoi apply
 ```
 
 By default the source checkout lands in `~/.local/share/chezmoi`. To keep it
-at `~/Projects/oss/dotfiles` instead (as on the M2), clone the repo there and
-set `~/.config/chezmoi/chezmoi.toml`:
+somewhere else, clone the repo there and point `~/.config/chezmoi/chezmoi.toml`
+at it:
 
 ```toml
-sourceDir = "/Users/joe/Projects/oss/dotfiles"
+sourceDir = "/absolute/path/to/dotfiles"
 ```
 
-## Rolling out to an existing machine (M4 / work)
+## Rolling out to an existing machine
 
-These machines have live configs with real drift — **never blind-apply**:
+Machines with live configs have real drift — **never blind-apply**:
 
 1. `brew install chezmoi`
 2. If mackup is still present: `mackup uninstall` is no longer a subcommand in
