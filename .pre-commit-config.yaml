@@ -1,5 +1,6 @@
 repos:
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.0
+  - repo: https://github.com/betterleaks/betterleaks
+    rev: v1.7.3
     hooks:
-      - id: gitleaks
+      # Uses the brew-installed betterleaks binary (see Brewfile)
+      - id: betterleaks-system
