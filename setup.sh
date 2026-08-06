@@ -32,10 +32,8 @@ ANDROID_API_LEVEL=36
 ANDROID_BUILD_TOOLS_VERSION="36.0.0"
 
 # The default Android device to create for emulator
-ANDROID_DEVICE_NAME="pixel_10"
-# We prefix with "--" because the React Native CLI chooses the first AVD in the
-# list.
-ANDROID_AVD_NAME="--${ANDROID_DEVICE_NAME}_api_${ANDROID_API_LEVEL}"
+ANDROID_DEVICE_NAME="pixel_9"
+ANDROID_AVD_NAME="${ANDROID_DEVICE_NAME}_api_${ANDROID_API_LEVEL}"
 
 # The Node.js version to install via proto
 NODE_VERSION=24
@@ -350,28 +348,15 @@ echo ""
 ################################################################################
 
 echo "🤖 Setting up Android SDK..."
-export ANDROID_HOME="${HOME}/Library/Android/sdk"
+# The android-commandlinetools cask (Brewfile) provides sdkmanager/avdmanager
+# and anchors the SDK under brew's share directory; all sdkmanager-installed
+# components (platforms, build-tools, emulator, system images) land there too.
+export ANDROID_HOME="$(brew --prefix)/share/android-commandlinetools"
 export ANDROID_SDK_ROOT="${ANDROID_HOME}"
 
-# Check if Android SDK command-line tools are available (specifically the 'latest' layout
-# that sdkmanager expects — Android Studio may install a versioned dir instead)
 if [ ! -f "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]; then
-  echo "📥 Android SDK command-line tools not found. Setting up..."
-
-  # Create Android SDK directory structure
-  mkdir -p "${ANDROID_HOME}/cmdline-tools"
-
-  echo "📦 Downloading Android SDK command-line tools..."
-  cmdline_tools_url="https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip"
-  temp_zip=$(mktemp "${TMPDIR:-/tmp}/cmdline-tools.XXXXXX.zip")
-
-  curl -L -o "${temp_zip}" "${cmdline_tools_url}"
-
-  echo "📦 Extracting command-line tools..."
-  unzip -q "${temp_zip}" -d "${ANDROID_HOME}/cmdline-tools"
-  mv "${ANDROID_HOME}/cmdline-tools/cmdline-tools" "${ANDROID_HOME}/cmdline-tools/latest"
-  rm -f "${temp_zip}"
-
+  echo "📥 Android SDK command-line tools not found. Installing cask..."
+  brew install --cask android-commandlinetools
   echo "✅ Android SDK command-line tools installed"
 else
   echo "✅ Android SDK command-line tools already installed"
@@ -571,7 +556,7 @@ export YARN_NPM_AUTH_IDENT="\${NODE_AUTH_TOKEN}"
 export npm_config__auth="\${NODE_AUTH_TOKEN}"
 
 # Android paths
-export ANDROID_HOME="\${ANDROID_HOME:-"\${HOME}/Library/Android/sdk"}"
+export ANDROID_HOME="\${ANDROID_HOME:-"\${HOMEBREW_PREFIX}/share/android-commandlinetools"}"
 export ANDROID_SDK_ROOT="\${ANDROID_HOME}"
 export PATH="\${ANDROID_HOME}/platform-tools/:\${PATH}"
 export PATH="\${ANDROID_HOME}/cmdline-tools/latest/bin/:\${PATH}"
@@ -645,7 +630,7 @@ echo ""
 echo "  Tools & SDKs:"
 echo "    🛠️ proto:   $(proto --version 2>/dev/null | awk '{print $NF}' || echo 'not available')"
 echo "    📱 Xcode:   $(xcodebuild -version 2>/dev/null | head -n 1 | sed 's/Xcode //' || echo 'not available')"
-echo "    🤖 Android Studio: $(/Applications/Android\ Studio.app/Contents/MacOS/studio --version 2>/dev/null | head -n 1 | sed 's/.*| //' || echo 'not available')"
+echo "    🤖 Android SDK: $(sdkmanager --version 2>/dev/null | head -n 1 || echo 'not available')"
 echo ""
 
 echo "📂 Dotfiles:"
