@@ -1,0 +1,91 @@
+# AGENTS.md — working on this repo as an agent
+
+Context and rules for AI agents (Claude Code, etc.) operating in this
+repository. Read README.md first for the human-facing overview.
+
+## What this repo is
+
+A **chezmoi source directory** for Joe's macOS dotfiles, shared across three
+near-identical MacBooks (work, personal M2, personal M4). The repo is
+**public** (github.com/jgornick/dotfiles). Files here are *rendered/deployed*
+into `$HOME` by chezmoi — editing a file in this repo does **not** change the
+live machine until `chezmoi apply` runs, and live edits don't reach the repo
+until `chezmoi re-add`.
+
+## Hard rules
+
+1. **Never `git push` unless Joe explicitly asks in the current
+   conversation.** Local commits are fine.
+2. **Never let secrets into the repo.** It's public. Machine-local secret
+   holders that must stay unmanaged: `~/.zshrc.local` (e.g. `SECRET_ENV`),
+   `~/.ssh/config.local` (home-lab hosts/IPs), `~/.npmrc` (npm tokens),
+   Joplin's `api.token`/`sync.*` (preserved by the modify_ script — never add
+   them to its managed overlay). Run `gitleaks dir .` when in doubt;
+   pre-commit runs gitleaks on every commit regardless.
+3. **Never blind-apply onto a machine.** Live `$HOME` files drift from the
+   repo (each machine has real local state). Always `chezmoi diff` and
+   reconcile per file before `chezmoi apply`. The same applies in reverse:
+   before `chezmoi re-add`, check the live file doesn't contain secrets.
+4. **Don't chmod-normalize casually.** `private_`/`executable_` prefixes in
+   source names encode target permissions; `~/Library` must stay 700
+   (`private_Library`), `~/.ssh/*` must stay 600.
+
+## How to make changes
+
+- **Change a managed dotfile:** edit the source file here (e.g.
+  `private_dot_zshrc`), then `chezmoi diff` → `chezmoi apply`. Or edit the
+  live file and `chezmoi re-add <target>`.
+- **Add a new file to management:** `chezmoi add <live-path>` (source name is
+  derived automatically). Check the resulting prefix matches intended perms.
+- **Change packages:** edit `private_dot_Brewfile`, then `chezmoi apply` —
+  the `run_onchange` hook runs `brew bundle` because the file's hash (embedded
+  in the script template) changed.
+- **Change synced app prefs:** don't edit `prefs/*.plist` by hand; change the
+  setting in the app, run `prefs/export.sh`, commit. On apply, the import
+  hook restarts the affected apps (Raycast, Rectangle Pro, Stats, Ice,
+  Middle, Monosnap) — mildly disruptive, expected.
+- **Repo-only files** (docs, scripts not deployed to `$HOME`): add them to
+  `.chezmoiignore` or they will be deployed as `~/...` targets.
+
+## Verification checklist
+
+After any change:
+
+```sh
+chezmoi doctor        # config sanity (dirty-worktree warnings are normal)
+chezmoi diff          # empty means source == live
+chezmoi apply         # then run it AGAIN — second run must output nothing
+```
+
+For template changes (`.tmpl`), `chezmoi execute-template < file.tmpl` renders
+without applying. For a fresh-machine simulation:
+`chezmoi apply --destination <scratch-dir> --exclude scripts`.
+
+## Gotchas learned the hard way
+
+- `~/.config/chezmoi/chezmoi.toml`: `sourceDir` is a **top-level** key; inside
+  a `[general]` section it's silently ignored and chezmoi uses
+  `~/.local/share/chezmoi`.
+- `chezmoi add` of a path whose parent dir already exists bare in the source
+  tree reuses that bare name — it created a non-`private_` `Library/` once,
+  which would have chmod'd `~/Library` 700 → 755 on apply.
+- The Joplin `modify_` script must output `jq --tab` (Joplin's own format) or
+  every Joplin write causes formatting churn; its `private_` filename prefix
+  is what keeps the target at mode 600.
+- Homebrew now requires `brew trust <tap>` for third-party taps
+  (`xcodesorg/made`); an untrusted tap fails the whole bundle hook and aborts
+  `chezmoi apply` mid-run.
+- VS Code ≥ 1.131 has Copilot Chat built in; `vscode "github.copilot*"`
+  Brewfile entries fail permanently — they were removed deliberately.
+- mackup 0.11+ removed the `uninstall` subcommand; this repo no longer uses
+  mackup at all (fully migrated 2026-08-06).
+- `setup.sh` fetches the Brewfile from raw GitHub at
+  `master/private_dot_Brewfile` — if the source layout moves, update that
+  path and the local fallback in `setup.sh`.
+
+## Current state (2026-08-06)
+
+Branch `chezmoi-migration` holds the migration (3 commits ahead of
+origin/master, **unpushed by request**). The personal M2 is migrated and
+validated; M4 and the work machine are rolled out only after Joe okays a
+push, following README's "Rolling out to an existing machine".
