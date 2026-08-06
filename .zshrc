@@ -17,25 +17,17 @@ fi
 # Set Development Tooling Environment Variables
 #
 
-# Set the nvm/node/npm version and paths
-export NVM_DIR="${NVM_DIR:-"${HOME}/.nvm"}"
-export NVM_INSTALL_DIR="${NVM_INSTALL_DIR:-"${HOMEBREW_PREFIX}/opt/nvm"}"
+# proto — language runtime manager (node, ruby, python, go, rust, java, etc.)
+export PROTO_HOME="${HOME}/.proto"
+export PATH="${PROTO_HOME}/shims:${PROTO_HOME}/bin:${PATH}"
+
 export NODE_OPTIONS="${NODE_OPTIONS} --max_old_space_size=4096"
 
-# Set then npm/yarn auth ident
+# npm auth token (populated by npm login, read from ~/.npmrc)
 export NODE_AUTH_TOKEN="$(cat ${HOME}/.npmrc 2>/dev/null | grep -o '_authToken=.*' -m 1 | sed 's/_authToken=//g')"
 export YARN_NPM_AUTH_IDENT="${NODE_AUTH_TOKEN}"
 # For classic version of yarn as npm9_ doesn't support _auth in npmrc
 export npm_config__auth="${NODE_AUTH_TOKEN}"
-
-# Set the rbenv/ruby version and paths
-export RBENV_ROOT="${RBENV_ROOT:-"${HOME}/.rbenv"}"
-
-# Set the pyenv/python version and paths
-export PYENV_ROOT="${PYENV_ROOT:-"${HOME}/.pyenv"}"
-
-# Set sdkman dir
-export SDKMAN_DIR="${SDKMAN_DIR:-"${HOME}/.sdkman"}"
 
 # Set Android paths
 export ANDROID_HOME="${ANDROID_HOME:-"${HOME}/Library/Android/sdk"}"
@@ -48,37 +40,10 @@ export PATH="${ANDROID_HOME}/emulator:${PATH}"
 export GRADLE_USER_HOME="${GRADLE_USER_HOME:-"${HOME}/.gradle"}"
 
 # Set the default iOS simulator name
-export IOS_SIMULATOR_NAME="iPhone 16 - iOS 18.6"
+export IOS_SIMULATOR_NAME="iPhone 16 - iOS 26.5"
 
 # Set the default Android emulator name
-export ANDROID_AVD_NAME="--pixel_7_api_34"
-
-#
-# Initialize Development Tooling
-#
-
-# Initialize nvm
-if ! which nvm > /dev/null; then
-  if [ -s "${NVM_INSTALL_DIR}/nvm.sh" ]; then
-    source "${NVM_INSTALL_DIR}/nvm.sh" --no-use
-    nvm use --silent default
-  fi
-fi
-
-# Initialize rbenv
-if which rbenv > /dev/null; then
-  eval "$(rbenv init -)"
-fi
-
-# Initialize pyenv
-if which pyenv > /dev/null; then
-  eval "$(pyenv init -)"
-fi
-
-# Initialize sdkman
-if [[ -s "${SDKMAN_DIR}/bin/sdkman-init.sh" ]]; then
-  source "${SDKMAN_DIR}/bin/sdkman-init.sh"
-fi
+export ANDROID_AVD_NAME="--pixel_10_api_36"
 
 # *******************************************************************************
 # END OF Development Environment Configuration
