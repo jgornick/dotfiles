@@ -123,17 +123,18 @@ rust_conflicts=("rust")
 
 # Resolve Brewfile location: use local copy if running from a cloned repo,
 # otherwise download from GitHub raw content alongside this script.
+# The repo is a chezmoi source, so the Brewfile lives at private_dot_Brewfile.
 DOTFILES_RAW_BASE="https://raw.githubusercontent.com/jgornick/dotfiles/master"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-local_brewfile="${script_dir}/.Brewfile"
+local_brewfile="${script_dir}/private_dot_Brewfile"
 
 if [ -f "${local_brewfile}" ]; then
   echo "📍 Using local Brewfile: ${local_brewfile}"
   brewfile_path="${local_brewfile}"
 else
-  echo "📥 Downloading Brewfile from ${DOTFILES_RAW_BASE}/.Brewfile ..."
+  echo "📥 Downloading Brewfile from ${DOTFILES_RAW_BASE}/private_dot_Brewfile ..."
   brewfile_path=$(mktemp "${TMPDIR:-/tmp}/Brewfile.XXXXXX")
-  curl -fsSL "${DOTFILES_RAW_BASE}/.Brewfile" -o "${brewfile_path}"
+  curl -fsSL "${DOTFILES_RAW_BASE}/private_dot_Brewfile" -o "${brewfile_path}"
   echo "📍 Using downloaded Brewfile: ${brewfile_path}"
 fi
 
@@ -645,6 +646,13 @@ echo "  Tools & SDKs:"
 echo "    🛠️ proto:   $(proto --version 2>/dev/null | awk '{print $NF}' || echo 'not available')"
 echo "    📱 Xcode:   $(xcodebuild -version 2>/dev/null | head -n 1 | sed 's/Xcode //' || echo 'not available')"
 echo "    🤖 Android Studio: $(/Applications/Android\ Studio.app/Contents/MacOS/studio --version 2>/dev/null | head -n 1 | sed 's/.*| //' || echo 'not available')"
+echo ""
+
+echo "📂 Dotfiles:"
+echo "    If chezmoi is not initialized yet, run:"
+echo "      chezmoi init git@github.com:jgornick/dotfiles.git"
+echo "      chezmoi diff    # review before applying"
+echo "      chezmoi apply"
 echo ""
 
 echo "🎉 Setup completed successfully for user: $USERNAME"

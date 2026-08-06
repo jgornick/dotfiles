@@ -1,0 +1,70 @@
+#!/bin/bash
+# chezmoi modify script for Joplin settings.json.
+# Overlays the synced settings below onto the live file, preserving
+# machine-local values that must never enter the repo: api.token and the
+# sync.* configuration (server URL, username, credentials).
+set -euo pipefail
+
+live=$(cat)
+if [ -z "${live}" ]; then
+  live='{}'
+fi
+
+managed=$(cat <<'EOF'
+{
+  "$schema": "https://joplinapp.org/schema/settings.json",
+  "autoUpdateEnabled": true,
+  "dateFormat": "YYYY-MM-DD",
+  "editor.autocompleteMarkup": false,
+  "editor.codeView": true,
+  "editor.enableHtmlToMarkdownBanner": false,
+  "editor.enableTextPatterns": false,
+  "editor.imageRendering": false,
+  "editor.inlineRendering": false,
+  "editor.legacyMarkdown": false,
+  "featureFlag.autoUpdaterServiceEnabled": false,
+  "featureFlag.richText.useStrictContentSecurityPolicy": false,
+  "locale": "en_US",
+  "markdown.plugin.abbr": true,
+  "markdown.plugin.deflist": true,
+  "markdown.plugin.emoji": true,
+  "markdown.plugin.fountain": true,
+  "markdown.plugin.insert": true,
+  "markdown.plugin.multitable": true,
+  "markdown.plugin.softbreaks": false,
+  "markdown.plugin.sub": true,
+  "markdown.plugin.sup": true,
+  "markdown.plugin.typographer": false,
+  "noteVisiblePanes": [
+    "editor",
+    "viewer"
+  ],
+  "notes.perFieldReverse": {
+    "order": false,
+    "title": false,
+    "todo_completed": true,
+    "todo_due": true,
+    "user_created_time": true,
+    "user_updated_time": true
+  },
+  "notes.sortOrder.buttonsVisible": false,
+  "notes.sortOrder.field": "user_updated_time",
+  "notes.sortOrder.reverse": true,
+  "ocr.enabled": false,
+  "showTrayIcon": false,
+  "spellChecker.languages": [
+    "en-US"
+  ],
+  "style.editor.fontFamily": "",
+  "style.editor.fontSize": 16,
+  "style.editor.monospaceFontFamily": "",
+  "style.viewer.fontFamily": "",
+  "theme": 2,
+  "themeAutoDetect": false,
+  "trackLocation": false
+}
+EOF
+)
+
+# --tab matches Joplin's own formatting so unchanged settings don't churn
+echo "${live}" | jq --tab --argjson managed "${managed}" '. * $managed'

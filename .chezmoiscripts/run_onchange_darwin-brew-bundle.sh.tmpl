@@ -1,0 +1,7 @@
+#!/bin/bash
+# Runs `brew bundle` whenever the Brewfile changes.
+# Brewfile hash: {{ include "private_dot_Brewfile" | sha256sum }}
+set -euo pipefail
+
+echo "🍺 Brewfile changed — running brew bundle..."
+brew bundle install --no-upgrade --file="${HOME}/.Brewfile"

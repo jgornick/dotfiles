@@ -1,0 +1,8 @@
+# Machine-local hosts and secrets live in ~/.ssh/config.local (not managed)
+Include ~/.ssh/config.local
+
+Host github.com
+  Hostname github.com
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/github

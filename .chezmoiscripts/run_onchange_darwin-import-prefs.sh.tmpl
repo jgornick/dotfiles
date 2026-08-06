@@ -1,0 +1,54 @@
+#!/bin/bash
+# Re-imports app preference snapshots (prefs/) whenever a snapshot changes.
+# Update snapshots with prefs/export.sh before committing.
+#
+# Snapshot hashes (trigger re-run when any changes):
+{{ range glob (joinPath .chezmoi.sourceDir "prefs" "*.plist") -}}
+# {{ base . }}: {{ include . | sha256sum }}
+{{ end -}}
+{{ if stat (joinPath .chezmoi.sourceDir "prefs" "monosnap-settings.json") -}}
+# monosnap-settings.json: {{ include (joinPath .chezmoi.sourceDir "prefs" "monosnap-settings.json") | sha256sum }}
+{{ end -}}
+set -euo pipefail
+
+PREFS_DIR="{{ .chezmoi.sourceDir }}/prefs"
+
+domains=(
+  com.apple.symbolichotkeys
+  com.jordanbaird.Ice
+  com.knollsoft.Hookshot
+  com.knollsoft.Middle
+  com.knollsoft.Rectangle
+  com.raycast.macos
+  eu.exelban.Stats
+)
+
+echo "⚙️  Preference snapshots changed — importing..."
+for domain in "${domains[@]}"; do
+  snapshot="${PREFS_DIR}/${domain}.plist"
+  if [ -f "${snapshot}" ]; then
+    defaults import "${domain}" "${snapshot}"
+    echo "   imported ${domain}"
+  fi
+done
+
+# Monosnap stores settings as JSON in its container, not via defaults
+monosnap_snapshot="${PREFS_DIR}/monosnap-settings.json"
+monosnap_target="${HOME}/Library/Containers/com.monosnap.monosnap/Data/Library/Monosnap/settings.json"
+if [ -f "${monosnap_snapshot}" ] && [ -d "$(dirname "${monosnap_target}")" ]; then
+  cp "${monosnap_snapshot}" "${monosnap_target}"
+  echo "   imported Monosnap settings"
+fi
+
+killall cfprefsd 2>/dev/null || true
+
+# Restart affected apps so they pick up imported prefs instead of
+# overwriting them with stale in-memory state on quit.
+for app in "Ice" "Middle" "Rectangle Pro" "Raycast" "Stats" "Monosnap"; do
+  if pgrep -xq "${app}"; then
+    killall "${app}" 2>/dev/null || true
+    sleep 1
+    open -a "${app}" 2>/dev/null || true
+    echo "   restarted ${app}"
+  fi
+done
