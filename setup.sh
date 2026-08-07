@@ -112,12 +112,15 @@ echo ""
 
 echo "📦 Installing dependencies via Homebrew..."
 
-# Conflicting formulae that should be unlinked before installing proto
-node_conflicts=("node" "node@16" "node@18" "node@20" "node@22" "node@24")
-python_conflicts=("python" "python@3.8" "python@3.9" "python@3.10" "python@3.11" "python@3.12" "python@3.13" "python@3.14")
-ruby_conflicts=("ruby" "ruby@3.0" "ruby@3.1" "ruby@3.2" "ruby@3.3" "ruby@3.4")
-go_conflicts=("go")
-rust_conflicts=("rust")
+# Formulae owned by proto (see PACKAGES.md) — brew copies are uninstalled
+# after brew bundle so proto's shims are the only copy on PATH
+proto_owned=(
+  "node" "node@16" "node@18" "node@20" "node@22" "node@24"
+  "python" "python@3.8" "python@3.9" "python@3.10" "python@3.11" "python@3.12" "python@3.13" "python@3.14"
+  "ruby" "ruby@3.0" "ruby@3.1" "ruby@3.2" "ruby@3.3" "ruby@3.4"
+  "go" "rust"
+  "pnpm" "yarn" "uv" "cocoapods" "sdkman-cli"
+)
 
 # Resolve Brewfile location: use local copy if running from a cloned repo,
 # otherwise download from GitHub raw content alongside this script.
@@ -145,49 +148,20 @@ fi
 echo "✅ Homebrew dependencies installation completed"
 echo ""
 
-echo "🔓 Checking for conflicting packages that need to be unlinked..."
+echo "🔓 Removing brew copies of proto-managed packages..."
 
-# Unlink conflicting Node packages
-for package in "${node_conflicts[@]}"; do
+for package in "${proto_owned[@]}"; do
   if brew list --formula "$package" >/dev/null 2>&1; then
-    echo "🔗 Unlinking conflicting package: $package"
-    brew unlink "$package" 2>/dev/null || true
+    echo "🗑️  Uninstalling proto-managed package: $package"
+    # Fall back to unlink if it's required as a dependency by another formula
+    if ! brew uninstall "$package" 2>/dev/null; then
+      echo "🔗 $package is required by another formula; unlinking instead"
+      brew unlink "$package" 2>/dev/null || true
+    fi
   fi
 done
 
-# Unlink conflicting Python packages
-for package in "${python_conflicts[@]}"; do
-  if brew list --formula "$package" >/dev/null 2>&1; then
-    echo "🔗 Unlinking conflicting package: $package"
-    brew unlink "$package" 2>/dev/null || true
-  fi
-done
-
-# Unlink conflicting Ruby packages
-for package in "${ruby_conflicts[@]}"; do
-  if brew list --formula "$package" >/dev/null 2>&1; then
-    echo "🔗 Unlinking conflicting package: $package"
-    brew unlink "$package" 2>/dev/null || true
-  fi
-done
-
-# Unlink conflicting Go packages
-for package in "${go_conflicts[@]}"; do
-  if brew list --formula "$package" >/dev/null 2>&1; then
-    echo "🔗 Unlinking conflicting package: $package"
-    brew unlink "$package" 2>/dev/null || true
-  fi
-done
-
-# Unlink conflicting Rust packages
-for package in "${rust_conflicts[@]}"; do
-  if brew list --formula "$package" >/dev/null 2>&1; then
-    echo "🔗 Unlinking conflicting package: $package"
-    brew unlink "$package" 2>/dev/null || true
-  fi
-done
-
-echo "✅ Conflicting packages check completed"
+echo "✅ Proto-managed package cleanup completed"
 echo ""
 
 ################################################################################
@@ -230,13 +204,21 @@ export PATH="${PROTO_HOME}/shims:${PROTO_HOME}/bin:${PATH}"
 
 echo "🟢 Setting up Node.js ${NODE_VERSION}..."
 proto install node "${NODE_VERSION}"
-proto pin node "${NODE_VERSION}" --global
+proto pin node "${NODE_VERSION}" --to global
 echo "✅ Node.js ${NODE_VERSION} is now active"
+echo ""
+
+echo "📦 Setting up pnpm and yarn via proto..."
+proto install pnpm
+proto pin pnpm latest --to global --resolve
+proto install yarn
+proto pin yarn latest --to global --resolve
+echo "✅ pnpm and yarn are now active"
 echo ""
 
 echo "💎 Setting up Ruby ${RUBY_VERSION}..."
 proto install ruby "${RUBY_VERSION}"
-proto pin ruby "${RUBY_VERSION}" --global
+proto pin ruby "${RUBY_VERSION}" --to global
 echo "✅ Ruby ${RUBY_VERSION} is now active"
 
 if ! gem list -i bundler >/dev/null 2>&1; then
@@ -246,29 +228,43 @@ if ! gem list -i bundler >/dev/null 2>&1; then
 else
   echo "✅ bundler is already installed"
 fi
+
+if ! gem list -i cocoapods >/dev/null 2>&1; then
+  echo "📦 Installing cocoapods gem..."
+  gem install cocoapods
+  echo "✅ cocoapods installation completed"
+else
+  echo "✅ cocoapods is already installed"
+fi
 echo ""
 
 echo "🐍 Setting up Python ${PYTHON_VERSION}..."
 proto install python "${PYTHON_VERSION}"
-proto pin python "${PYTHON_VERSION}" --global
+proto pin python "${PYTHON_VERSION}" --to global
 echo "✅ Python ${PYTHON_VERSION} is now active"
+echo ""
+
+echo "🐍 Setting up uv via proto..."
+proto install uv
+proto pin uv latest --to global --resolve
+echo "✅ uv is now active"
 echo ""
 
 echo "🐹 Setting up Go ${GO_VERSION}..."
 proto install go "${GO_VERSION}"
-proto pin go "${GO_VERSION}" --global
+proto pin go "${GO_VERSION}" --to global
 echo "✅ Go ${GO_VERSION} is now active"
 echo ""
 
 echo "🦀 Setting up Rust ${RUST_VERSION}..."
 proto install rust "${RUST_VERSION}"
-proto pin rust "${RUST_VERSION}" --global
+proto pin rust "${RUST_VERSION}" --to global
 echo "✅ Rust ${RUST_VERSION} is now active"
 echo ""
 
 echo "☕️ Setting up Java ${JAVA_VERSION}..."
 proto install java "${JAVA_VERSION}"
-proto pin java "${JAVA_VERSION}" --global
+proto pin java "${JAVA_VERSION}" --to global
 echo "✅ Java ${JAVA_VERSION} is now active"
 echo ""
 
