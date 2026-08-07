@@ -31,7 +31,7 @@ Special pieces:
   Joplin settings onto the live file while preserving the machine-local
   `api.token` and `sync.*` keys, so they never enter this (public) repo.
 - **`.chezmoiignore`** — keeps repo-only files (`README.md`, `AGENTS.md`,
-  `PACKAGES.md`, `setup.sh`, `prefs/`) out of `$HOME`.
+  `setup.sh`, `prefs/`) out of `$HOME`.
 - **`lefthook.yml`** — betterleaks scans every commit for secrets (run
   `lefthook install` once after cloning).
 

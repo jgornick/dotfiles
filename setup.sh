@@ -117,8 +117,8 @@ echo ""
 
 echo "📦 Installing dependencies via Homebrew..."
 
-# Formulae owned by proto (see PACKAGES.md) — brew copies are uninstalled
-# after brew bundle so proto's shims are the only copy on PATH
+# Formulae owned by proto — brew copies are uninstalled after brew bundle so
+# proto's shims are the only copy on PATH
 proto_owned=(
   "node" "node@16" "node@18" "node@20" "node@22" "node@24"
   "python" "python@3.8" "python@3.9" "python@3.10" "python@3.11" "python@3.12" "python@3.13" "python@3.14"
