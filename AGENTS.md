@@ -21,7 +21,7 @@ until `chezmoi apply` runs, and live edits don't reach the repo until
    (preserved by the modify_ script — never add them to its managed overlay).
    This covers more than credentials: private hostnames, internal IPs,
    employer usernames or IDs, and machine inventories don't belong here
-   either. Run `betterleaks dir .` when in doubt; pre-commit runs betterleaks on
+   either. Run `betterleaks dir .` when in doubt; lefthook runs betterleaks on
    every commit regardless. Note that app-pref snapshots in `prefs/` can
    carry personal data from the *apps* (e.g. folder-permission paths) —
    inspect them after re-exporting.

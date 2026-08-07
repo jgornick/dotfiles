@@ -1,0 +1,4 @@
+pre-commit:
+  commands:
+    betterleaks:
+      run: betterleaks git --pre-commit --redact --staged --verbose

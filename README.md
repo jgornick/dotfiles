@@ -32,7 +32,8 @@ Special pieces:
   `api.token` and `sync.*` keys, so they never enter this (public) repo.
 - **`.chezmoiignore`** — keeps repo-only files (`README.md`, `AGENTS.md`,
   `PACKAGES.md`, `setup.sh`, `prefs/`) out of `$HOME`.
-- **`.pre-commit-config.yaml`** — betterleaks scans every commit for secrets.
+- **`lefthook.yml`** — betterleaks scans every commit for secrets (run
+  `lefthook install` once after cloning).
 
 ## Machine-local files (never committed)
 
