@@ -18,6 +18,13 @@ fi
 export PROTO_HOME="${HOME}/.proto"
 export PATH="${PROTO_HOME}/shims:${PROTO_HOME}/bin:${PATH}"
 
+# Gem executables from proto's ruby (e.g. cocoapods' pod) have no proto shim;
+# appended so the shims above still win for ruby/gem/bundle
+for gem_bin in "${PROTO_HOME}"/tools/ruby/*/bin(N); do
+  export PATH="${PATH}:${gem_bin}"
+done
+unset gem_bin
+
 export NODE_OPTIONS="${NODE_OPTIONS} --max_old_space_size=4096"
 
 # npm auth token (populated by npm login, read from ~/.npmrc)
