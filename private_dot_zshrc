@@ -27,14 +27,21 @@ unset gem_bin
 
 export NODE_OPTIONS="${NODE_OPTIONS} --max_old_space_size=4096"
 
-# npm auth token (populated by npm login, read from ~/.npmrc)
-export NODE_AUTH_TOKEN="$(cat ${HOME}/.npmrc 2>/dev/null | grep -o '_authToken=.*' -m 1 | sed 's/_authToken=//g')"
-export YARN_NPM_AUTH_IDENT="${NODE_AUTH_TOKEN}"
-# For classic version of yarn as npm9_ doesn't support _auth in npmrc
-export npm_config__auth="${NODE_AUTH_TOKEN}"
+# npm auth token (populated by npm login, read from ~/.npmrc). Only exported when
+# a token exists — empty values make npm and yarn send blank credentials instead
+# of falling back to anonymous access on registries that need no login.
+NODE_AUTH_TOKEN="$(grep -o '_authToken=.*' -m 1 "${HOME}/.npmrc" 2>/dev/null | sed 's/_authToken=//g')"
+if [ -n "${NODE_AUTH_TOKEN}" ]; then
+  export NODE_AUTH_TOKEN
+  export YARN_NPM_AUTH_IDENT="${NODE_AUTH_TOKEN}"
+  # For classic version of yarn as npm9_ doesn't support _auth in npmrc
+  export npm_config__auth="${NODE_AUTH_TOKEN}"
+else
+  unset NODE_AUTH_TOKEN
+fi
 
 # Set Android paths
-export ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}"
+export ANDROID_HOME="${ANDROID_HOME:-"${HOMEBREW_PREFIX}/share/android-commandlinetools"}"
 export ANDROID_SDK_ROOT="${ANDROID_HOME}"
 export PATH="${ANDROID_HOME}/platform-tools/:${PATH}"
 export PATH="${ANDROID_HOME}/cmdline-tools/latest/bin/:${PATH}"
@@ -44,7 +51,7 @@ export PATH="${ANDROID_HOME}/emulator:${PATH}"
 export GRADLE_USER_HOME="${GRADLE_USER_HOME:-"${HOME}/.gradle"}"
 
 # Set the default iOS simulator name
-export IOS_SIMULATOR_NAME="iPhone 17 Pro"
+export IOS_SIMULATOR_NAME="iPhone 16 - iOS 26.5"
 
 # Set the default Android emulator name
 export ANDROID_AVD_NAME="pixel_9_api_36"
@@ -55,7 +62,11 @@ export ANDROID_AVD_NAME="pixel_9_api_36"
 
 # User configuration
 
-[[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
+# No manual VS Code shell integration here: `terminal.integrated.shellIntegration.
+# enabled` defaults to true, so VS Code injects it automatically. Sourcing it by
+# hand spawned the `code` CLI on every start, which cost ~135ms — over half of
+# shell startup inside VS Code. Re-add the line below if injection ever fails:
+#   [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
 
 export EDITOR="code --wait"
 
@@ -63,16 +74,9 @@ export XDG_CONFIG_HOME="${HOME}/.config"
 
 export LS_COLORS=$(vivid generate catppuccin-mocha)
 
-export AUTOENV_ENV_FILENAME=.autoenv
-export AUTOENV_ENV_LEAVE_FILENAME=.autoenv.leave
-export AUTOENV_ENABLE_LEAVE=yes
-export AUTOENV_ASSUME_YES=yes
-
 # initialize antidote plugins statically with ${ZDOTDIR:-~}/.zsh_plugins.txt
 source /opt/homebrew/opt/antidote/share/antidote/antidote.zsh
 antidote load
-
-source $(brew --prefix autoenv)/activate.sh
 
 alias ..='cd ../'
 alias ...='cd ../..'

@@ -80,25 +80,42 @@ the affected apps.
 
 ## Setting up a new machine
 
-```sh
-# 1. Bootstrap tooling: Homebrew + Brewfile (includes chezmoi), Xcode,
-#    proto runtimes, Android SDK, gh/npm auth
-curl -fsSL https://raw.githubusercontent.com/jgornick/dotfiles/master/setup.sh | bash
+Every machine keeps the source checkout at `~/Projects/oss/dotfiles`, so clone
+first and run `setup.sh` **from that clone** — do not pipe it from `curl`. The
+script prompts for input (`npm login`, the Xcode license, "press Enter to
+continue"), and piping it into `bash` hands those prompts the script's own text
+instead of the keyboard. Running from the clone also makes it use the local
+`private_dot_Brewfile` rather than downloading whatever is on `master`.
 
-# 2. Initialize dotfiles — ALWAYS review the diff before applying on a
-#    machine that already has config
-chezmoi init git@github.com:jgornick/dotfiles.git
+```sh
+# 1. Command Line Tools, for git
+xcode-select --install
+
+# 2. Clone to the canonical location (HTTPS — the SSH key isn't restored yet)
+git clone https://github.com/jgornick/dotfiles.git ~/Projects/oss/dotfiles
+
+# 3. Point chezmoi at the clone (this file is machine-local and never managed)
+mkdir -p ~/.config/chezmoi
+printf 'sourceDir = "%s/Projects/oss/dotfiles"\n' "$HOME" > ~/.config/chezmoi/chezmoi.toml
+
+# 4. Bootstrap tooling: Homebrew + Brewfile (includes chezmoi), Xcode,
+#    proto runtimes, Android SDK, gh/npm auth. Interactive — expect Apple ID,
+#    App Store, and gh prompts.
+cd ~/Projects/oss/dotfiles && ./setup.sh
+
+# 5. Apply dotfiles — ALWAYS review the diff first
 chezmoi diff
 chezmoi apply
+
+# 6. Install the commit hooks in the clone
+lefthook install
 ```
 
-By default the source checkout lands in `~/.local/share/chezmoi`. To keep it
-somewhere else, clone the repo there and point `~/.config/chezmoi/chezmoi.toml`
-at it:
+One follow-up the script doesn't cover:
 
-```toml
-sourceDir = "/absolute/path/to/dotfiles"
-```
+- **Restore machine-local files by hand** — `~/.zshrc.local`, `~/.ssh/config.local`,
+  and `~/.ssh/` keys. Once the GitHub key is back, switch the remote to SSH:
+  `git remote set-url origin git@github.com:jgornick/dotfiles.git`.
 
 ## Rolling out to an existing machine
 
@@ -109,7 +126,8 @@ Machines with live configs have real drift — **never blind-apply**:
    0.11+; check for symlinks first —
    `find ~ -maxdepth 3 -type l -lname '*dotfiles*'` — and resolve any, then
    `brew uninstall mackup`.
-3. `chezmoi init git@github.com:jgornick/dotfiles.git` (no `--apply`)
+3. Clone to `~/Projects/oss/dotfiles` and point `~/.config/chezmoi/chezmoi.toml`
+   at it (see above) — no `chezmoi init --apply`.
 4. `chezmoi diff` — review every hunk. For live-side changes worth keeping,
    `chezmoi re-add <file>` and commit; move any machine secrets into
    `~/.zshrc.local` / `~/.ssh/config.local` first.

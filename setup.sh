@@ -18,7 +18,7 @@ trap cleanup_and_exit SIGINT SIGTERM
 USERNAME=$(whoami)
 
 # The default Xcode version to install via xcodes
-XCODE_VERSION=26.5
+XCODE_VERSION=26.6
 
 # The default iPhone simulator version to set up
 IPHONE_VERSION=16
@@ -55,6 +55,11 @@ JAVA_VERSION=25
 
 # The default npm registry
 NPM_REGISTRY=https://registry.npmjs.org/
+
+# Whether the registry needs credentials: "auto" asks the registry and only logs
+# in when it actually refuses, "true" always logs in, "false" never does. Auto is
+# safe for the public registry, which serves packages without any login.
+NPM_AUTH_REQUIRED=auto
 
 # npm login auth type: "legacy" (prompts for username/password/token, works with
 # any registry) or "web" (browser-based SSO, supported by npmjs.com and some
@@ -303,39 +308,52 @@ echo ""
 # iOS Simulator Setup
 ################################################################################
 
-echo "📱 Setting up iOS ${XCODE_IOS_VERSION} simulator runtime (required for Xcode ${XCODE_VERSION})..."
-xcode_ios_name="iOS ${XCODE_IOS_VERSION}"
-if [ "$(xcodes runtimes | grep "${xcode_ios_name} (Installed)" | wc -l)" -eq 0 ]; then
-  echo "📥 Installing iOS ${XCODE_IOS_VERSION} runtime... (this may take a while)"
+# Ask CoreSimulator, not xcodes, whether a runtime is present: simctl availability
+# is what `simctl create` actually needs, and it stays correct regardless of how
+# xcodes formats its listing (it prints "iOS 26.5 [Apple Silicon] (Installed)", so
+# grepping for "iOS 26.5 (Installed)" never matches and reinstalls every run).
+ios_runtime_available() {
+  xcrun simctl list runtimes | grep -qF "com.apple.CoreSimulator.SimRuntime.iOS-${1//./-}"
+}
+
+install_ios_runtime() {
+  if ios_runtime_available "${1}"; then
+    echo "✅ iOS ${1} runtime is already installed"
+    return
+  fi
+  echo "📥 Installing iOS ${1} runtime... (this may take a while)"
   echo ""
-  xcodes runtimes install "${xcode_ios_name}"
-  echo "✅ iOS ${XCODE_IOS_VERSION} runtime installation completed"
-else
-  echo "✅ iOS ${XCODE_IOS_VERSION} runtime is already installed"
-fi
+  xcodes runtimes install "iOS ${1}"
+  echo "✅ iOS ${1} runtime installation completed"
+}
+
+echo "📱 Setting up iOS ${XCODE_IOS_VERSION} simulator runtime (required for Xcode ${XCODE_VERSION})..."
+install_ios_runtime "${XCODE_IOS_VERSION}"
 echo ""
 
-echo "📱 Setting up iOS ${IOS_VERSION} simulator runtime..."
-ios_name="iOS ${IOS_VERSION}"
-if [ "$(xcodes runtimes | grep "${ios_name} (Installed)" | wc -l)" -eq 0 ]; then
-  echo "📥 Installing iOS ${IOS_VERSION} runtime... (this may take a while)"
+# Installing the same version twice registers a second, duplicate disk image that
+# CoreSimulator marks unusable, which in turn breaks runtime lookup for simctl.
+if [ "${IOS_VERSION}" != "${XCODE_IOS_VERSION}" ]; then
+  echo "📱 Setting up iOS ${IOS_VERSION} simulator runtime..."
+  install_ios_runtime "${IOS_VERSION}"
   echo ""
-  xcodes runtimes install "${ios_name}"
-  echo "✅ iOS ${IOS_VERSION} runtime installation completed"
-else
-  echo "✅ iOS ${IOS_VERSION} runtime is already installed"
 fi
-echo ""
 
 echo "📱 Setting up iPhone ${IPHONE_VERSION} simulator device..."
 simulator_iphone_name="iPhone ${IPHONE_VERSION}"
-simulator_name="${simulator_iphone_name} - ${ios_name}"
-if [ "$(xcrun simctl list devices | grep "${simulator_name}" | wc -l)" -eq 0 ]; then
-  echo "📱 Creating simulator: ${simulator_name}"
-  xcrun simctl create "${simulator_name}" "${simulator_iphone_name}" "iOS ${IOS_VERSION}"
-  echo "✅ iPhone ${IPHONE_VERSION} simulator creation completed"
-else
+simulator_name="${simulator_iphone_name} - iOS ${IOS_VERSION}"
+if xcrun simctl list devices | grep -qF "${simulator_name}"; then
   echo "✅ iPhone ${IPHONE_VERSION} simulator already exists"
+elif ! ios_runtime_available "${IOS_VERSION}"; then
+  echo "⚠️  Skipping simulator: iOS ${IOS_VERSION} runtime is not available to simctl."
+  echo "   Check 'xcrun simctl runtime list' for unusable images, then re-run."
+else
+  echo "📱 Creating simulator: ${simulator_name}"
+  # Pass the runtime identifier rather than the "iOS 26.5" display name, which
+  # fails to resolve whenever more than one image reports that same version.
+  xcrun simctl create "${simulator_name}" "${simulator_iphone_name}" \
+    "com.apple.CoreSimulator.SimRuntime.iOS-${IOS_VERSION//./-}"
+  echo "✅ iPhone ${IPHONE_VERSION} simulator creation completed"
 fi
 echo ""
 
@@ -480,124 +498,104 @@ echo ""
 
 echo "🔐 Setting up npm authentication..."
 
-need_full_auth=false
-
-# Check if already authenticated
-if npm whoami --registry="${NPM_REGISTRY}" >/dev/null 2>&1; then
-  echo "✅ npm registry authentication already active"
-
+# Export credentials only when a token actually exists: empty values make npm and
+# yarn send blank credentials rather than falling back to anonymous access.
+export_npm_auth() {
   NODE_AUTH_TOKEN=$(get_node_auth_token)
 
-  if [ -n "${NODE_AUTH_TOKEN}" ]; then
-    echo "✅ Authentication token found in .npmrc"
-    export NODE_AUTH_TOKEN
-    export YARN_NPM_AUTH_IDENT="${NODE_AUTH_TOKEN}"
-    export npm_config__auth="${NODE_AUTH_TOKEN}"
-  else
-    echo "⚠️  Could not extract token from .npmrc, will re-authenticate"
-    need_full_auth=true
+  if [ -z "${NODE_AUTH_TOKEN}" ]; then
+    unset NODE_AUTH_TOKEN
+    return 1
   fi
-else
-  echo "📝 npm registry authentication required"
-  need_full_auth=true
-fi
 
-if [ "${need_full_auth}" = true ]; then
-  echo "🔑 Logging into npm registry: ${NPM_REGISTRY}"
-  echo "   Auth type: ${NPM_AUTH_TYPE}"
-  npm login --registry="${NPM_REGISTRY}" --auth-type="${NPM_AUTH_TYPE}"
-  echo "✅ npm login completed"
-  echo ""
-
-  export NODE_AUTH_TOKEN="$(get_node_auth_token)"
+  export NODE_AUTH_TOKEN
   export YARN_NPM_AUTH_IDENT="${NODE_AUTH_TOKEN}"
   export npm_config__auth="${NODE_AUTH_TOKEN}"
-  echo "✅ Authentication tokens configured"
-fi
+}
 
-echo ""
-
-################################################################################
-# Shell Configuration Generation
-################################################################################
-
-echo "📋 Generating shell configuration and copying to clipboard..."
-shell_config=$(cat << EOF
-# *******************************************************************************
-# Development Environment Configuration
-# *******************************************************************************
-# Copy and paste this entire block into your ~/.(bash|zsh)rc file.
-# If you need to update it later, simply replace the entire block with a new one.
-# *******************************************************************************
-
-# Initialize (home)brew
-if [ -z \${HOMEBREW_PREFIX+x} ]; then
-  export HOMEBREW_PREFIX=\$([[ -d "/opt/homebrew" ]] && echo "/opt/homebrew" || echo "/usr/local")
-  eval "\$(\${HOMEBREW_PREFIX}/bin/brew shellenv)"
-fi
-
+# Ask the registry whether it will serve packages with the credentials we already
+# have (possibly none). npm does the request rather than curl so the probe honours
+# the .npmrc proxy, CA and strict-ssl settings that private registries usually sit
+# behind. Exit codes: 0 = readable as-is, 1 = credentials required, 2 = unclear.
 #
-# Set Development Tooling Environment Variables
-#
+# Registries disagree on how they refuse: some answer 401/403, but others (GitHub
+# Packages among them) answer 404 so they never reveal whether a package exists.
+# A 404 is therefore indistinguishable from a genuinely absent package, so this
+# can establish that auth IS needed but never that it isn't.
+probe_npm_registry() {
+  npm_probe_output=$(npm view npm version --registry="${NPM_REGISTRY}" 2>&1) && return 0
 
-# proto — language runtime manager (node, ruby, python, go, rust, java, etc.)
-export PROTO_HOME="\${HOME}/.proto"
-export PATH="\${PROTO_HOME}/shims:\${PROTO_HOME}/bin:\${PATH}"
+  case "${npm_probe_output}" in
+    *"code E401"* | *"code E403"* | *ENEEDAUTH*) return 1 ;;
+    *) return 2 ;;
+  esac
+}
 
-export NODE_OPTIONS="\${NODE_OPTIONS} --max_old_space_size=4096"
+npm_auth_required="${NPM_AUTH_REQUIRED}"
 
-# npm auth token (populated by npm login, read from ~/.npmrc)
-export NODE_AUTH_TOKEN="\$(cat \${HOME}/.npmrc 2>/dev/null | grep -o '_authToken=.*' -m 1 | sed 's/_authToken=//g')"
-export YARN_NPM_AUTH_IDENT="\${NODE_AUTH_TOKEN}"
-export npm_config__auth="\${NODE_AUTH_TOKEN}"
+if [ "${npm_auth_required}" = auto ]; then
+  echo "🔎 Checking whether ${NPM_REGISTRY} needs credentials..."
 
-# Android paths
-export ANDROID_HOME="\${ANDROID_HOME:-"\${HOMEBREW_PREFIX}/share/android-commandlinetools"}"
-export ANDROID_SDK_ROOT="\${ANDROID_HOME}"
-export PATH="\${ANDROID_HOME}/platform-tools/:\${PATH}"
-export PATH="\${ANDROID_HOME}/cmdline-tools/latest/bin/:\${PATH}"
-export PATH="\${ANDROID_HOME}/emulator:\${PATH}"
+  probe_status=0
+  probe_npm_registry || probe_status=$?
 
-# Gradle
-export GRADLE_USER_HOME="\${GRADLE_USER_HOME:-"\${HOME}/.gradle"}"
-
-# Set the default iOS simulator name
-export IOS_SIMULATOR_NAME="${simulator_name}"
-
-# Set the default Android emulator name
-export ANDROID_AVD_NAME="${ANDROID_AVD_NAME}"
-
-# *******************************************************************************
-# END OF Development Environment Configuration
-# *******************************************************************************
-# Remember: To update this configuration in the future, simply replace this
-# entire block (from the top comment to this bottom comment) with the new one.
-# *******************************************************************************
-EOF
-)
-echo ""
-
-echo "$shell_config"
-echo "$shell_config" | pbcopy
-echo "✅ Configuration copied to clipboard!"
-
-# Detect user's shell and open the appropriate RC file in VS Code
-shell_rc="${HOME}/.$(basename "$SHELL")rc"
-
-# Open the RC file in VS Code
-if command -v code >/dev/null 2>&1; then
-  echo "📂 Ready to open $shell_rc in VS Code"
+  case "${probe_status}" in
+    0)
+      npm_auth_required=false
+      echo "✅ Registry is readable without logging in"
+      ;;
+    1)
+      npm_auth_required=true
+      echo "🔒 Registry refused the request as unauthenticated"
+      ;;
+    *)
+      npm_auth_required=false
+      echo "⚠️  Could not tell whether ${NPM_REGISTRY} needs credentials."
+      echo "   Continuing without login; set NPM_AUTH_REQUIRED=true if installs fail."
+      ;;
+  esac
   echo ""
-  read -p "Press Enter to open the file in VS Code to paste the configuration..."
-  code "$shell_rc"
-  echo "✅ Opened $shell_rc in VS Code"
-else
-  echo "📝 Please paste the configuration into your $shell_rc file"
 fi
 
-echo ""
-read -p "Press Enter after you've pasted the configuration into your $shell_rc file..."
-echo "✅ Configuration setup completed"
+if [ "${npm_auth_required}" != true ]; then
+  echo "⏭️  Skipping npm login for ${NPM_REGISTRY}"
+  # A token may still be present for private scopes; reuse it if so.
+  if export_npm_auth; then
+    echo "✅ Reusing existing authentication token from .npmrc"
+  fi
+else
+  need_full_auth=false
+
+  # Check if already authenticated
+  if npm whoami --registry="${NPM_REGISTRY}" >/dev/null 2>&1; then
+    echo "✅ npm registry authentication already active"
+
+    if export_npm_auth; then
+      echo "✅ Authentication token found in .npmrc"
+    else
+      echo "⚠️  Could not extract token from .npmrc, will re-authenticate"
+      need_full_auth=true
+    fi
+  else
+    echo "📝 npm registry authentication required"
+    need_full_auth=true
+  fi
+
+  if [ "${need_full_auth}" = true ]; then
+    echo "🔑 Logging into npm registry: ${NPM_REGISTRY}"
+    echo "   Auth type: ${NPM_AUTH_TYPE}"
+    npm login --registry="${NPM_REGISTRY}" --auth-type="${NPM_AUTH_TYPE}"
+    echo "✅ npm login completed"
+    echo ""
+
+    if export_npm_auth; then
+      echo "✅ Authentication tokens configured"
+    else
+      echo "⚠️  npm login finished but no token was written to .npmrc"
+    fi
+  fi
+fi
+
 echo ""
 
 ################################################################################
@@ -630,9 +628,11 @@ echo "    🤖 Android SDK: $(sdkmanager --version 2>/dev/null | head -n 1 || ec
 echo ""
 
 echo "📂 Dotfiles:"
-echo "    If chezmoi is not initialized yet, run:"
-echo "      chezmoi init git@github.com:jgornick/dotfiles.git"
-echo "      chezmoi diff    # review before applying"
+echo "    Your shell configuration (~/.zshrc) is delivered by chezmoi, not by"
+echo "    this script. Apply it now:"
+echo ""
+echo "      chezmoi init git@github.com:jgornick/dotfiles.git   # first machine only"
+echo "      chezmoi diff    # review before applying — never blind-apply"
 echo "      chezmoi apply"
 echo ""
 
