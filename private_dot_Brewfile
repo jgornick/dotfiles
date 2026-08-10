@@ -40,7 +40,9 @@ brew "wget"
 brew "xcodegen"
 brew "yq"
 brew "zoxide"
-brew "xcodesorg/made/xcodes"
+# Homebrew 6 will not load formulae or casks from third-party taps unless they
+# are trusted; `trusted: true` records that trust as part of `brew bundle`.
+brew "xcodesorg/made/xcodes", trusted: true
 cask "android-commandlinetools"
 cask "appium-inspector"
 cask "bartender"
@@ -72,6 +74,6 @@ cask "rectangle-pro"
 cask "stats"
 cask "visual-studio-code"
 cask "vlc"
-cask "hamed-elfayome/claude-usage/claude-usage-tracker"
-cask "pear-devs/pear/pear-desktop"
+cask "hamed-elfayome/claude-usage/claude-usage-tracker", trusted: true
+cask "pear-devs/pear/pear-desktop", trusted: true
 mas "Monosnap", id: 540348655

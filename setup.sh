@@ -70,6 +70,12 @@ NPM_AUTH_TYPE=legacy
 # the following configuration variable seems to be more safe.
 TMPDIR=$(getconf DARWIN_USER_TEMP_DIR)
 
+# Homebrew keeps its trust store under $XDG_CONFIG_HOME (falling back to
+# ~/.homebrew when unset). This script runs before chezmoi delivers the ~/.zshrc
+# that exports XDG_CONFIG_HOME, so without pinning it here every tap trusted
+# below lands in ~/.homebrew/trust.json and is invisible to later shells.
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
+
 ################################################################################
 # Function definitions
 ################################################################################
@@ -144,6 +150,23 @@ else
   echo "📍 Using downloaded Brewfile: ${brewfile_path}"
 fi
 
+# Homebrew 6 refuses to load formulae and casks from third-party taps until they
+# are trusted ($HOMEBREW_REQUIRE_TAP_TRUST defaults on), which aborts a
+# non-interactive `brew bundle`. Trust every tap the Brewfile declares up front.
+# The Brewfile also marks its third-party entries `trusted: true` so `brew
+# bundle` works the same way when chezmoi runs it later.
+if brew trust --json=v1 >/dev/null 2>&1; then
+  echo "🔑 Trusting third-party taps declared in the Brewfile..."
+  while IFS= read -r tap_name; do
+    [ -n "${tap_name}" ] || continue
+    brew trust --tap "${tap_name}"
+  done < <(sed -nE 's/^[[:space:]]*tap[[:space:]]+"([^"]+)".*/\1/p' "${brewfile_path}")
+  echo "✅ Tap trust configured"
+else
+  echo "⏭️  This Homebrew has no 'brew trust' command; nothing to trust"
+fi
+echo ""
+
 brew bundle install --no-upgrade --file="${brewfile_path}"
 
 # Clean up temp Brewfile if we downloaded it
@@ -185,7 +208,32 @@ fi
 
 echo "🔧 Setting Xcode ${XCODE_VERSION} as selected version..."
 xcodes select "${XCODE_VERSION}"
-echo "✅ Xcode ${XCODE_VERSION} is now selected"
+
+# `xcodes select` is a no-op if it cannot escalate, which leaves the active
+# developer directory pointing at the Command Line Tools. Every xcrun-based tool
+# then reports the utility it wants as missing ("unable to find utility
+# ... not a developer tool or in PATH") rather than saying Xcode is not selected.
+active_developer_dir="$(xcode-select -p 2>/dev/null || true)"
+if [[ "${active_developer_dir}" != *".app/Contents/Developer" ]]; then
+  echo "📝 Active developer directory is '${active_developer_dir:-none}', not an Xcode.app."
+  echo "   Pointing it at Xcode ${XCODE_VERSION}. Please provide your sudo password..."
+  sudo xcode-select -s "$(xcodes select -p)"
+  active_developer_dir="$(xcode-select -p)"
+fi
+echo "✅ Xcode ${XCODE_VERSION} is now selected (${active_developer_dir})"
+
+# A freshly unpacked Xcode still has to install its bundled toolchain packages.
+# Until it does, the developer directory is missing build tools that xcrun
+# resolves lazily, so `xcodebuild`, `simctl` and CocoaPods fail with confusing
+# "not a developer tool" errors. This also accepts the license.
+echo "🚀 Checking Xcode first-launch components..."
+if xcodebuild -checkFirstLaunchStatus >/dev/null 2>&1; then
+  echo "✅ Xcode first-launch components already installed"
+else
+  echo "📦 Installing Xcode first-launch components. Please provide your sudo password..."
+  sudo xcodebuild -runFirstLaunch
+  echo "✅ Xcode first-launch components installed"
+fi
 
 echo "📄 Checking Xcode license status..."
 if xcodebuild -license status >/dev/null 2>&1; then
@@ -213,6 +261,15 @@ proto pin node "${NODE_VERSION}" --to global
 echo "✅ Node.js ${NODE_VERSION} is now active"
 echo ""
 
+echo "📦 Setting up npm via proto..."
+# npm is its own proto tool: the node plugin ships only the `node` shim, so npm,
+# npx and node-gyp stay off PATH — and every later npm call in this script fails
+# — unless npm is installed and pinned in its own right.
+proto install npm
+proto pin npm latest --to global --resolve
+echo "✅ npm is now active"
+echo ""
+
 echo "📦 Setting up pnpm and yarn via proto..."
 proto install pnpm
 proto pin pnpm latest --to global --resolve
@@ -225,6 +282,14 @@ echo "💎 Setting up Ruby ${RUBY_VERSION}..."
 proto install ruby "${RUBY_VERSION}"
 proto pin ruby "${RUBY_VERSION}" --to global
 echo "✅ Ruby ${RUBY_VERSION} is now active"
+
+# Gem executables (cocoapods' `pod`, for one) get no proto shim, so add the gem
+# bin directory the way ~/.zshrc does — appended, to keep the shims winning for
+# ruby/gem/bundle themselves.
+for gem_bin in "${PROTO_HOME}"/tools/ruby/*/bin; do
+  [ -d "${gem_bin}" ] && export PATH="${PATH}:${gem_bin}"
+done
+unset gem_bin
 
 if ! gem list -i bundler >/dev/null 2>&1; then
   echo "📦 Installing bundler gem..."
@@ -264,6 +329,10 @@ echo ""
 echo "🦀 Setting up Rust ${RUST_VERSION}..."
 proto install rust "${RUST_VERSION}"
 proto pin rust "${RUST_VERSION}" --to global
+# proto's rust plugin delegates to rustup, which creates no proto shims and puts
+# cargo/rustc in ~/.cargo/bin. rustup wires that into ~/.zshenv for interactive
+# shells; this non-login bash never reads it, so source it directly.
+[ -f "${HOME}/.cargo/env" ] && . "${HOME}/.cargo/env"
 echo "✅ Rust ${RUST_VERSION} is now active"
 echo ""
 
