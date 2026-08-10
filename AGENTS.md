@@ -95,6 +95,13 @@ without applying. For a fresh-machine simulation:
 - `chezmoi add` of a path whose parent dir already exists bare in the source
   tree reuses that bare name — it created a non-`private_` `Library/` once,
   which would have chmod'd `~/Library` 700 → 755 on apply.
+- The same bare-directory trap hit `~/.ssh`: the source was `dot_ssh/`, so
+  chezmoi targeted mode 755 while the live dir was (correctly) 700 — a
+  `chezmoi diff` that never came back clean, and an apply that would have
+  loosened `~/.ssh`. It is `private_dot_ssh/` now. The `private_` prefix on the
+  *directory* is what pins 700; the one on `private_config` only covers the
+  file. Unmanaged files in there (`github`, `known_hosts*`) survive apply
+  because the dir is not `exact_`.
 - The Joplin `modify_` script must output `jq --tab` (Joplin's own format) or
   every Joplin write causes formatting churn; its `private_` filename prefix
   is what keeps the target at mode 600.

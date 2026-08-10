@@ -66,6 +66,20 @@ NPM_AUTH_REQUIRED=auto
 # private registries with SSO configured)
 NPM_AUTH_TYPE=legacy
 
+# The personal GitHub account these dotfiles belong to. The GitHub section is
+# scoped to it throughout: the script will not upload a key to whatever other
+# account gh happens to have active.
+GITHUB_USER=jgornick
+
+# The SSH identity both ~/.ssh/config and ~/.ssh/config.oss point at. One key
+# per machine, generated locally and never copied between laptops — so a lost
+# machine is revoked by deleting just its key at github.com/settings/keys.
+GITHUB_SSH_KEY="${HOME}/.ssh/github"
+
+# OAuth scopes this script needs: `user` to read the primary email address,
+# `admin:public_key` to upload the SSH key.
+GITHUB_SCOPES="user,admin:public_key"
+
 # There are reported issues when using $TMPDIR after macOS upgrades and using
 # the following configuration variable seems to be more safe.
 TMPDIR=$(getconf DARWIN_USER_TEMP_DIR)
@@ -86,6 +100,23 @@ get_node_auth_token() {
   else
     echo ""
   fi
+}
+
+# Whether the active gh token may add SSH keys to the account. The scopes are
+# read from the API response header rather than `gh auth status` so the answer
+# is the same for a token gh stored itself and a GH_TOKEN exported in the env.
+# admin:public_key is what `gh auth login`/`refresh` grants; write:public_key is
+# accepted too since a hand-made token may carry only that.
+github_can_upload_keys() {
+  local scopes
+  scopes=$(gh api -i user 2>/dev/null \
+    | tr -d '\r' \
+    | sed -nE 's/^[Xx]-[Oo][Aa]uth-[Ss]copes:[[:space:]]*//p')
+
+  case ",${scopes// /}," in
+    *,admin:public_key,* | *,write:public_key,*) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 ################################################################################
@@ -265,16 +296,23 @@ echo "📦 Setting up npm via proto..."
 # npm is its own proto tool: the node plugin ships only the `node` shim, so npm,
 # npx and node-gyp stay off PATH — and every later npm call in this script fails
 # — unless npm is installed and pinned in its own right.
-proto install npm
+#
+# Pin before install, for every `latest --resolve` tool below. `--resolve` freezes
+# whatever "latest" means right now into ~/.proto/.prototools, and a bare
+# `proto install <tool>` installs the version already pinned there — so the other
+# order pins a newer release than the one it just installed, leaving the pin
+# pointing at a version that is not on disk. This way install always follows the
+# pin and puts the pinned version there.
 proto pin npm latest --to global --resolve
+proto install npm
 echo "✅ npm is now active"
 echo ""
 
 echo "📦 Setting up pnpm and yarn via proto..."
-proto install pnpm
 proto pin pnpm latest --to global --resolve
-proto install yarn
+proto install pnpm
 proto pin yarn latest --to global --resolve
+proto install yarn
 echo "✅ pnpm and yarn are now active"
 echo ""
 
@@ -315,8 +353,8 @@ echo "✅ Python ${PYTHON_VERSION} is now active"
 echo ""
 
 echo "🐍 Setting up uv via proto..."
-proto install uv
 proto pin uv latest --to global --resolve
+proto install uv
 echo "✅ uv is now active"
 echo ""
 
@@ -528,27 +566,224 @@ fi
 echo ""
 
 ################################################################################
-# GitHub & Git Configuration
+# GitHub Authentication
 ################################################################################
 
-echo "📧 Setting up GitHub authentication and Git configuration..."
+echo "📧 Setting up GitHub authentication..."
 
-# Check if already authenticated with the user:email scope (required for gh api user/emails)
-if gh auth status >/dev/null 2>&1 && gh api user/emails >/dev/null 2>&1; then
-  echo "✅ GitHub CLI already authenticated with user scope"
+github_login=""
+if gh auth status --hostname github.com >/dev/null 2>&1; then
+  github_login=$(gh api user -q .login 2>/dev/null || true)
+fi
+
+# gh can hold several accounts for one host at once (a work account among them).
+# Make the personal account active before anything gets uploaded to it.
+if [ -n "${github_login}" ] && [ "${github_login}" != "${GITHUB_USER}" ]; then
+  echo "🔀 Active GitHub account is '${github_login}'; switching to '${GITHUB_USER}'..."
+  if gh auth switch --hostname github.com --user "${GITHUB_USER}" >/dev/null 2>&1; then
+    github_login=$(gh api user -q .login 2>/dev/null || true)
+    echo "✅ Switched to ${github_login}"
+  else
+    echo "📝 No '${GITHUB_USER}' account is logged in yet; starting a fresh login"
+    github_login=""
+  fi
+fi
+
+if [ "${github_login}" != "${GITHUB_USER}" ]; then
+  echo "🔑 Authenticating with GitHub CLI as ${GITHUB_USER}..."
+  # --skip-ssh-key declines gh's own key generation: the key is created below
+  # instead, at the path ~/.ssh/config already expects. -p ssh still sets the
+  # git protocol so `gh repo clone` uses SSH remotes.
+  gh auth login -p ssh -h github.com --skip-ssh-key -w -s "${GITHUB_SCOPES}"
+  github_login=$(gh api user -q .login)
+fi
+
+if [ "${github_login}" != "${GITHUB_USER}" ]; then
+  echo "❌ Logged in as '${github_login}', not '${GITHUB_USER}'."
+  echo "   These dotfiles configure the ${GITHUB_USER} account only. Run"
+  echo "   'gh auth login' as ${GITHUB_USER} and re-run this script."
+  exit 1
+fi
+
+if github_can_upload_keys && gh api user/emails >/dev/null 2>&1; then
+  echo "✅ GitHub CLI authenticated as ${github_login} with the scopes needed"
 else
-  echo "🔑 Authenticating with GitHub CLI..."
-  gh auth login -p ssh -h github.com --skip-ssh-key -w -s user
-  echo "✅ GitHub authentication completed"
+  echo "🔑 Requesting the scopes this script needs (${GITHUB_SCOPES})..."
+  gh auth refresh -h github.com -s "${GITHUB_SCOPES}"
+  echo "✅ Scopes granted"
 fi
 echo ""
+
+################################################################################
+# GitHub SSH Key
+################################################################################
+
+echo "🔐 Setting up this machine's GitHub SSH key..."
+
+mkdir -p "${HOME}/.ssh"
+chmod 700 "${HOME}/.ssh"
+
+# ComputerName is the friendly name from System Settings; the short hostname is
+# the fallback for a machine that never got one. Used for the key comment and
+# the key's title on GitHub, so the account page says which laptop each key is.
+machine_name=$(scutil --get ComputerName 2>/dev/null || hostname -s)
+
+if [ -f "${GITHUB_SSH_KEY}" ]; then
+  echo "✅ Existing key found: ${GITHUB_SSH_KEY}"
+
+  # A private key whose .pub was lost still authenticates fine, but every step
+  # below reads the public half, so derive it again (prompts for the passphrase).
+  # Written via a temp file so a wrong passphrase leaves no truncated .pub for
+  # the next run to trust.
+  if [ ! -f "${GITHUB_SSH_KEY}.pub" ]; then
+    echo "🔧 Public half is missing; deriving it from the private key..."
+    ssh-keygen -y -f "${GITHUB_SSH_KEY}" > "${GITHUB_SSH_KEY}.pub.tmp"
+    mv "${GITHUB_SSH_KEY}.pub.tmp" "${GITHUB_SSH_KEY}.pub"
+  fi
+else
+  echo "🔑 Generating a new ed25519 key for this machine: ${GITHUB_SSH_KEY}"
+  echo "   Pick a passphrase when prompted — it goes into the login keychain on"
+  echo "   the next step, so this is the only time you have to type it."
+  ssh-keygen -t ed25519 -f "${GITHUB_SSH_KEY}" -C "${USERNAME}@${machine_name}"
+  echo "✅ Key generated"
+fi
+
+chmod 600 "${GITHUB_SSH_KEY}"
+chmod 644 "${GITHUB_SSH_KEY}.pub"
+echo ""
+
+echo "🔗 Loading the key into ssh-agent..."
+key_fingerprint=$(ssh-keygen -lf "${GITHUB_SSH_KEY}.pub" | awk '{print $2}')
+
+if ssh-add -l 2>/dev/null | grep -qF "${key_fingerprint}"; then
+  echo "✅ Key is already loaded in ssh-agent"
+else
+  # Storing the passphrase in the login keychain is what lets the agent reload
+  # the key after a reboot without prompting — the same thing `UseKeychain yes`
+  # in ~/.ssh/config relies on. The flag is Apple's, present since Monterey and
+  # not worth feature-detecting: `ssh-add -h` takes an argument rather than
+  # printing help, so it never lists the flag even where it works, and the
+  # pre-Monterey spelling (-K) is deprecated on every macOS this script targets.
+  if ssh-add --apple-use-keychain "${GITHUB_SSH_KEY}"; then
+    echo "✅ Key loaded; passphrase saved to the login keychain"
+  else
+    echo "⚠️  Could not load the key into ssh-agent (is SSH_AUTH_SOCK set?)."
+    echo "    Not fatal: 'AddKeysToAgent yes' in ~/.ssh/config loads it on first"
+    echo "    use instead — you will just be asked for the passphrase once more."
+  fi
+fi
+echo ""
+
+echo "🧾 Recording github.com host keys..."
+# Take the host keys from the API rather than whatever ssh-keyscan (or a first
+# interactive connect) is told on the wire — the API call is TLS-verified, the
+# other two are trust-on-first-use. ~/.ssh/config.oss points at its own
+# known_hosts file, so both files need the entries.
+github_host_keys=$(gh api meta -q '.ssh_keys[]')
+
+for known_hosts_file in "${HOME}/.ssh/known_hosts" "${HOME}/.ssh/known_hosts.oss"; do
+  touch "${known_hosts_file}"
+  chmod 600 "${known_hosts_file}"
+
+  while IFS= read -r host_key; do
+    [ -n "${host_key}" ] || continue
+    # Match on the key material: it stays in plain text even when the hostname
+    # column is hashed, so this works either way.
+    if ! grep -qF "${host_key}" "${known_hosts_file}"; then
+      printf 'github.com %s\n' "${host_key}" >> "${known_hosts_file}"
+    fi
+  done <<< "${github_host_keys}"
+done
+echo "✅ Host keys recorded in ~/.ssh/known_hosts and ~/.ssh/known_hosts.oss"
+echo ""
+
+echo "📤 Publishing the public key to the ${GITHUB_USER} account..."
+# Compare the key material only: titles differ per machine and GitHub rejects a
+# re-upload of a key it already has, which would abort the script.
+public_key_body=$(awk '{print $2}' "${GITHUB_SSH_KEY}.pub")
+
+if gh api user/keys --paginate -q '.[].key' | awk '{print $2}' | grep -qxF "${public_key_body}"; then
+  echo "✅ This machine's key is already on the ${GITHUB_USER} account"
+else
+  # Dated because a reimaged laptop keeps its name but gets a brand new key.
+  key_title="${machine_name} ($(date +%Y-%m-%d))"
+  echo "📤 Adding key '${key_title}'..."
+  gh ssh-key add "${GITHUB_SSH_KEY}.pub" --title "${key_title}"
+  echo "✅ Key added — this machine can now push to ${GITHUB_USER}'s repos"
+fi
+echo ""
+
+echo "🔍 Verifying SSH access to github.com..."
+# github.com always closes the session with exit status 1, so read the greeting
+# instead of the exit code. IdentitiesOnly stops the agent offering other keys
+# first — otherwise a "Hi <someone-else>!" would look like success.
+ssh_test_output=$(ssh -T -o BatchMode=yes -o IdentitiesOnly=yes \
+  -o StrictHostKeyChecking=yes -i "${GITHUB_SSH_KEY}" git@github.com 2>&1 || true)
+
+case "${ssh_test_output}" in
+  *"Hi ${GITHUB_USER}"*)
+    echo "✅ ${ssh_test_output}"
+    ;;
+  *)
+    echo "⚠️  Could not confirm SSH access to github.com:"
+    echo "    ${ssh_test_output}"
+    echo "    Debug with: ssh -vT -i ${GITHUB_SSH_KEY} git@github.com"
+    ;;
+esac
+echo ""
+
+echo "🔗 Checking the dotfiles remote..."
+# The clone starts on HTTPS (README step 2) because no key existed yet. Now one
+# does, so move origin to SSH and pushes from this clone use the key.
+if git -C "${script_dir}" rev-parse --git-dir >/dev/null 2>&1; then
+  dotfiles_remote=$(git -C "${script_dir}" remote get-url origin 2>/dev/null || true)
+
+  case "${dotfiles_remote}" in
+    "https://github.com/${GITHUB_USER}/"*)
+      dotfiles_repo="${dotfiles_remote#https://github.com/}"
+      dotfiles_repo="${dotfiles_repo%.git}"
+      git -C "${script_dir}" remote set-url origin "git@github.com:${dotfiles_repo}.git"
+      echo "✅ origin switched to git@github.com:${dotfiles_repo}.git"
+      ;;
+    *)
+      echo "⏭️  origin is '${dotfiles_remote:-unset}'; leaving it as is"
+      ;;
+  esac
+else
+  echo "⏭️  Not running from a git clone; no remote to switch"
+fi
+echo ""
+
+################################################################################
+# Git Configuration
+################################################################################
 
 echo "📬 Retrieving GitHub email address..."
 github_email=$(gh api user/emails | jq -r '.[] | select(.primary == true) | .email')
 echo "📧 Found GitHub email: ${github_email}"
 
 echo "🔧 Configuring Git with email: ${github_email}"
+# This writes into ~/.gitconfig, which chezmoi also manages via
+# private_dot_gitconfig — so chezmoi is the real source of truth and `chezmoi
+# apply` wins on the next run. Setting it here only covers the window before
+# the first apply, when git still needs an identity to commit with.
+#
+# The two agree today. If they ever diverge, this line would re-introduce the
+# same drift on every run while apply keeps reverting it, so say so out loud
+# rather than let `chezmoi diff` quietly never come back clean.
 git config --global user.email "${github_email}"
+
+managed_gitconfig="${script_dir}/private_dot_gitconfig"
+if [ -f "${managed_gitconfig}" ]; then
+  managed_email=$(sed -nE 's/^[[:space:]]*email[[:space:]]*=[[:space:]]*(.+)$/\1/p' \
+    "${managed_gitconfig}" | head -1)
+
+  if [ -n "${managed_email}" ] && [ "${managed_email}" != "${github_email}" ]; then
+    echo "⚠️  private_dot_gitconfig declares '${managed_email}' but GitHub's primary"
+    echo "    address is '${github_email}'. 'chezmoi apply' will overwrite the value"
+    echo "    set here — update private_dot_gitconfig so the two agree."
+  fi
+fi
 echo "✅ Git configuration completed"
 echo ""
 
@@ -694,6 +929,11 @@ echo "  Tools & SDKs:"
 echo "    🛠️ proto:   $(proto --version 2>/dev/null | awk '{print $NF}' || echo 'not available')"
 echo "    📱 Xcode:   $(xcodebuild -version 2>/dev/null | head -n 1 | sed 's/Xcode //' || echo 'not available')"
 echo "    🤖 Android SDK: $(sdkmanager --version 2>/dev/null | head -n 1 || echo 'not available')"
+echo ""
+echo "  GitHub:"
+echo "    👤 Account:  ${github_login}"
+echo "    🔐 SSH key:  ${GITHUB_SSH_KEY} (${key_fingerprint})"
+echo "    🏷️  Listed as '${machine_name}' at https://github.com/settings/keys"
 echo ""
 
 echo "📂 Dotfiles:"
