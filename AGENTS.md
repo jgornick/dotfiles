@@ -44,9 +44,32 @@ until `chezmoi apply` runs, and live edits don't reach the repo until
   the `run_onchange` hook runs `brew bundle` because the file's hash (embedded
   in the script template) changed.
 - **Change synced app prefs:** don't edit `prefs/*.plist` by hand; change the
-  setting in the app, run `prefs/export.sh`, commit. On apply, the import
-  hook restarts the affected apps (Raycast, Rectangle Pro, Stats, Ice,
-  Middle, Monosnap) — mildly disruptive, expected.
+  setting in the app, run `prefs/export.sh <domain>` for the domain you
+  changed, commit. Never run `--all` on a machine whose apps aren't fully
+  configured — whole-domain export can't tell your settings from fresh-install
+  defaults and will overwrite good snapshots with a diff that looks routine.
+  On apply, the import hook restarts the affected apps (Raycast, Rectangle Pro,
+  Stats, Middle, Bartender, Monosnap) — mildly disruptive, expected.
+- **Check pref drift:** `prefs/export.sh --check` compares live domains against
+  snapshots; `--drifted` prints just the names (machine-readable); `--diff
+  <domain>` shows what actually changed. Comparison normalises via `plutil -p`
+  — `plutil -convert json` is NOT usable, it fails on the `<date>` and `<data>`
+  values most of these snapshots contain.
+- **Secrets and churn in prefs:** `prefs/` is committed to a public repo. Add
+  keys to a `scrub_<domain_with_underscores>` array in `prefs/export.sh` to
+  strip them after export; entries are **extended regexes** matched against
+  whole key names. Use a pattern, not a literal, for anything secret — Paddle
+  embeds a per-product id in its key (`Paddle-Middle-573204-SD`), and a literal
+  that stops matching after a version bump would silently publish the licence.
+  Safe because `defaults import` merges, so each machine keeps its own value.
+  Volatile-but-harmless keys go in `noise_key_patterns` (global) or
+  `noise_<domain>` (per-domain) instead — those are ignored when comparing but
+  still exported.
+- **Sync helpers:** `dot_config/zsh/dots.zsh` defines `dots-status` /
+  `dots-pull` / `dots-push` / `dots-prefs` / `dots-merge`. They locate the repo
+  via `chezmoi source-path` because `prefs/` is chezmoiignored and never lands
+  in `$HOME`. `dots-push` prompts before committing when a domain has drifted,
+  and skips the prompt when stdin isn't a TTY so scripts can't hang.
 - **Repo-only files** (docs, scripts not deployed to `$HOME`): add them to
   `.chezmoiignore` or they will be deployed as `~/...` targets.
 

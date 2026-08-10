@@ -51,32 +51,92 @@ If something secret or machine-specific needs a home, it goes in one of these
 
 ## Daily sync
 
-Aliases/functions defined in `.zshrc`:
+### The model
 
-```sh
-dots-status   # what differs between live files and the source
-dots-pull     # git pull + show diff — review, then run: chezmoi apply
-dots-push     # chezmoi re-add live changes, commit, push
+chezmoi has **three** states, which is why "changed in both places" feels
+ambiguous until you see them named:
+
+```
+  source                target                 destination
+  (this repo)  ──────>  (source + templates    ($HOME: the real files)
+                         + config)
+      ▲                                              │
+      └────────────  add / re-add  ◄─────────────────┘
 ```
 
-Editing flow, either direction works:
+- **repo → home:** `chezmoi apply`
+- **home → repo:** `chezmoi add` (new file), `chezmoi re-add` (already managed)
+- **edit the repo directly:** `chezmoi edit`
 
-- Edit the live file (e.g. `~/.zshrc`), then `dots-push` to capture + commit.
-- Or `chezmoi edit ~/.zshrc`, then `chezmoi apply` to update the live file.
+App preferences do **not** work this way, and can't: they aren't files you edit
+but a database `cfprefsd` owns and apps write to continuously. They get a
+deliberately asymmetric pipeline instead — import automatic, export manual.
+
+### Helpers
+
+Defined in `dot_config/zsh/dots.zsh`, sourced from `.zshrc`:
+
+```sh
+dots-status   # am I in sync? — both dotfiles and prefs
+dots-pull     # git pull + show diff — review, then run: chezmoi apply
+dots-push     # re-add, warn on uncaptured pref drift, commit, push
+dots-prefs    # bare: check for pref drift; with a domain: export it
+dots-merge    # reconcile: dotfiles via 3-way merge, prefs by choosing a side
+```
+
+| Situation | Command |
+|---|---|
+| What differs? | `dots-status` |
+| Get remote changes | `dots-pull` → review → `chezmoi apply` |
+| Captured a live dotfile edit | `dots-push -m "msg"` |
+| Edit via the repo instead | `chezmoi edit ~/.zshrc` → `chezmoi apply` |
+| Changed an app's settings | `dots-prefs <domain>` → `dots-push -m "msg"` |
+| **Both sides changed** | `dots-merge` → then `dots-push` |
+
+### Reading `chezmoi status`
+
+Two columns: the first is whether `$HOME` changed since chezmoi last wrote it,
+the second is whether `chezmoi apply` will change it.
+
+- `_M` — source is ahead; just `chezmoi apply`
+- `MM` — `$HOME` drifted
+- `_R` — a script will run on the next apply
+
+`MM` does **not** distinguish "only `$HOME` changed" from "both changed" — a
+drifted file differs from the target either way. Check `git log` if you need to
+know, or just run `dots-merge`, which handles both cases correctly.
 
 ### App preferences
 
-GUI app settings (Raycast, Rectangle Pro, Stats, Ice, Middle, Monosnap, macOS
-hotkeys) are **snapshots**, not live-tracked. After changing settings you want
-to sync:
+GUI app settings (Raycast, Rectangle Pro, Stats, Middle, Bartender, Monosnap,
+macOS hotkeys) are **snapshots**, not live-tracked.
 
 ```sh
-./prefs/export.sh    # refresh snapshots from this machine
-git add prefs && git commit
+dots-prefs                              # which domains have drifted
+dots-prefs com.knollsoft.Hookshot       # capture that one
+./prefs/export.sh --diff <domain>       # see exactly what differs
 ```
 
-On the receiving machine, the next `chezmoi apply` imports them and restarts
-the affected apps.
+`export.sh` requires you to name domains — it will not export everything
+implicitly. `defaults export` captures a whole domain and cannot distinguish
+settings you chose from what an app wrote on first launch, so a blanket export
+on a machine whose apps aren't set up yet quietly replaces good snapshots with
+fresh-install defaults. Naming domains keeps that blast radius to the one app
+you touched. `--all` exists for a fully configured machine.
+
+Drift checks ignore volatile keys (window geometry, menu-bar positions, update
+timestamps, caches) so that `--check` reports real settings changes only — see
+`noise_key_patterns` in `prefs/export.sh`.
+
+On the receiving machine, the next `chezmoi apply` imports the snapshots and
+restarts the affected apps. Import **merges** into the live domain rather than
+replacing it, so per-machine values (licences, for one) survive.
+
+Reconciling a pref conflict is **choosing a side with a readable diff**, not an
+editable merge — there is no three-way merge to perform, since `defaults
+import` already merges key-wise. `dots-merge` offers keep-live / take-repo /
+skip per domain. Note "take repo" merges rather than replaces, so it will not
+delete keys that exist only on this machine.
 
 ## Setting up a new machine
 

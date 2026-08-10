@@ -15,11 +15,10 @@ PREFS_DIR="{{ .chezmoi.sourceDir }}/prefs"
 
 domains=(
   com.apple.symbolichotkeys
-  com.jordanbaird.Ice
   com.knollsoft.Hookshot
   com.knollsoft.Middle
-  com.knollsoft.Rectangle
   com.raycast.macos
+  com.surteesstudios.Bartender
   eu.exelban.Stats
 )
 
@@ -44,7 +43,7 @@ killall cfprefsd 2>/dev/null || true
 
 # Restart affected apps so they pick up imported prefs instead of
 # overwriting them with stale in-memory state on quit.
-for app in "Ice" "Middle" "Rectangle Pro" "Raycast" "Stats" "Monosnap"; do
+for app in "Bartender 6" "Middle" "Rectangle Pro" "Raycast" "Stats" "Monosnap"; do
   if pgrep -xq "${app}"; then
     killall "${app}" 2>/dev/null || true
     sleep 1
