@@ -148,7 +148,7 @@
     },
     "workbench.secondarySideBar.defaultVisibility": "hidden",
     "dotenv.enableAutocloaking": false,
-    "window.zoomLevel": 1,
     "claudeCode.preferredLocation": "panel",
-    "chat.viewSessions.orientation": "stacked"
+    "chat.viewSessions.orientation": "stacked",
+    "window.zoomLevel": 1
 }
