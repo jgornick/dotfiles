@@ -1,12 +1,38 @@
 #!/usr/bin/env bash
 
+# Menu bar clock: analog face.
+# Choosing analog is the whole setting — macOS greys out the digital-only
+# options (seconds, AM/PM, day of week, date) once IsAnalog is set, so the
+# leftover ShowAMPM/ShowDayOfWeek/ShowDate keys are simply ignored. They are
+# left in place deliberately so switching back to digital restores them.
+defaults write com.apple.menuextra.clock IsAnalog -bool true
+
+# Recent documents, applications, and servers: 10.
+# NSRecentDocumentsLimit is confirmed in this build's shared cache (with its
+# setRecentDocumentsLimit setter); apps read it at launch.
+defaults write NSGlobalDomain NSRecentDocumentsLimit -int 10
+
+# Automatically hide and show the menu bar: In Full Screen Only.
+# Two keys, both verified against this build: _HIHideMenuBar false means "don't
+# always hide", AppleMenuBarVisibleInFullscreen false means "do hide in full
+# screen". Together they are the "In Full Screen Only" option.
+defaults write NSGlobalDomain _HIHideMenuBar -bool false
+defaults write NSGlobalDomain AppleMenuBarVisibleInFullscreen -bool false
+
+# The menu bar clock is drawn by ControlCenter, which reads this domain only at
+# launch; without the restart the change appears on next login instead of now.
+killall ControlCenter 2>/dev/null || true
+
 echo ""
 echo "📋 ============================================================================"
 echo "📋 MANUAL STEPS REQUIRED 📋"
 echo "📋 ============================================================================"
 echo ""
-echo "⚠️  The scripted defaults commands for Control Center menu bar items may not work reliably."
-echo "Please manually configure the following settings in System Settings > Control Center:"
+echo "Control Center module visibility genuinely cannot be scripted on macOS 26."
+echo "It is no longer stored as one key per module: com.apple.controlcenter now"
+echo "keeps it in ControlCenterDisplayableChronoControlsProviderConfiguration, a"
+echo "single opaque binary blob. Writing the old per-module integer keys does"
+echo "nothing. Configure these in System Settings > Control Center:"
 echo ""
 echo "### ⚙️ Control Center Modules"
 echo ""
@@ -50,16 +76,11 @@ echo "  * Show in Control Center: OFF"
 echo ""
 echo "### 📊 Menu Bar Only"
 echo ""
-echo "* Clock: Enable Analog"
+echo "* Clock: analog — scripted above, nothing to do"
 echo "* Spotlight: Don't Show in Menu Bar"
 echo "* Siri: Don't Show in Menu Bar"
 echo "* Time Machine: Don't Show in Menu Bar"
 echo "* Weather: Don't Show in Menu Bar"
-echo ""
-echo "### ⚙️ Additional Settings"
-echo ""
-echo "* Automatically hide and show the menu bar: In Full Screen Only"
-echo "* Recent documents, applications, and servers: 10"
 echo ""
 echo "🔗 To access: System Settings > Control Center"
 echo ""

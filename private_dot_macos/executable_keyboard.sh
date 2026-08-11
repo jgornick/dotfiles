@@ -31,39 +31,13 @@ defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
 # Disable auto-correct
 defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 
-# # Complete Keyboard Shortcuts Override
-# # This configuration explicitly sets ALL keyboard shortcuts to their current state
-# # This ensures complete control over keyboard shortcuts - no defaults will be used
-
-# # Find all available keyboard shortcut keys and disable them
-# keys=$(defaults read com.apple.symbolichotkeys AppleSymbolicHotKeys 2>/dev/null | grep -o '^[[:space:]]*[0-9]\+ =' | sed 's/ =//' | tr -d ' ' | sort -u)
-
-# for key in $keys; do
-#     # Set value to empty dict
-#     /usr/libexec/PlistBuddy -c "Set :AppleSymbolicHotKeys:$key:value {}" ~/Library/Preferences/com.apple.symbolichotkeys.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :AppleSymbolicHotKeys:$key:value dict" ~/Library/Preferences/com.apple.symbolichotkeys.plist
-#     # Set enabled to 0
-#     /usr/libexec/PlistBuddy -c "Set :AppleSymbolicHotKeys:$key:enabled 0" ~/Library/Preferences/com.apple.symbolichotkeys.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :AppleSymbolicHotKeys:$key:enabled integer 0" ~/Library/Preferences/com.apple.symbolichotkeys.plist
-# done
-
-
-echo ""
-echo "📋 ============================================================================"
-echo "📋 MANUAL STEPS REQUIRED 📋"
-echo "📋 ============================================================================"
-echo ""
-echo "⚠️  The following settings cannot be automated and must be configured manually:"
-echo ""
-echo "⌨️  Keyboard Shortcuts - Mission Control & Function Keys:"
-echo "      - Open System Settings > Keyboard > Keyboard Shortcuts > Mission Control"
-echo "      - Uncheck all Mission Control shortcuts, specifically:"
-echo "        • Mission Control (typically F3 or Ctrl+↑)"
-echo "        • Application windows (typically F4)"
-echo "        • Show Desktop (typically F11)"
-echo ""
-echo "      Note: When 'Use F1, F2, etc. keys as standard function keys' is enabled,"
-echo "      you must disable these in System Settings as they are hardware-level"
-echo "      shortcuts that bypass the symbolic hotkeys system."
-echo ""
-echo "🔗 To access: System Settings > Keyboard > Keyboard Shortcuts > Mission Control"
-echo ""
-echo "📋 ============================================================================"
+# Keyboard shortcuts are NOT configured here.
+#
+# The whole com.apple.symbolichotkeys domain is a tracked snapshot in prefs/,
+# imported by the run_onchange hook on every `chezmoi apply`. That snapshot
+# already disables 81 of 87 shortcuts, including the Mission Control ones this
+# script used to ask you to uncheck by hand (32 = Mission Control,
+# 33 = Application windows, 36 = Show Desktop).
+#
+# To change a shortcut: change it in System Settings, then
+#   prefs/export.sh com.apple.symbolichotkeys

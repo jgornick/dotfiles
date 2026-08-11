@@ -109,66 +109,138 @@ add_folder_to_dock "/Applications" "Applications" 1 2
 # Add Downloads folder to Dock (sort by name, fan view)
 add_folder_to_dock "$HOME/Downloads" "Downloads" 2 1
 
-# Restart Dock to apply changes
+# ==============================================================================
+# DESKTOP & STAGE MANAGER
+# ==============================================================================
+#
+# The com.apple.WindowManager keys below were verified against this macOS build
+# (26.6) by searching the dyld shared cache. The frameworks that read them are
+# not readable with `strings` on disk, so key names cannot be confirmed the
+# usual way — anything that could not be confirmed is left in the manual list
+# at the end of this script rather than written on a guess.
+
+# Show Items: uncheck "On Desktop"
+defaults write com.apple.WindowManager StandardHideDesktopIcons -bool true
+
+# Show Widgets: uncheck "On Desktop" and "In Stage Manager"
+defaults write com.apple.WindowManager StandardHideWidgets -bool true
+defaults write com.apple.WindowManager StageManagerHideWidgets -bool true
+
+# Use iPhone widgets: OFF. The key name is confirmed in this build's shared
+# cache; the domain is chronod (the widget daemon), evidenced by its
+# hasMigratedRemoteWidgetsEnabledState marker. Picked up at next login.
+defaults write com.apple.chronod remoteWidgetsEnabled -bool false
+
+# Click wallpaper to reveal desktop: Only in Stage Manager
+defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
+
+# Stage Manager: OFF
+defaults write com.apple.WindowManager GloballyEnabled -bool false
+
+# ==============================================================================
+# WINDOWS
+# ==============================================================================
+
+# Prefer tabs when opening documents: Always
+defaults write NSGlobalDomain AppleWindowTabbingMode -string always
+
+# Ask to keep changes when closing documents: ON
+defaults write NSGlobalDomain NSCloseAlwaysConfirmsChanges -bool true
+
+# Close windows when quitting an application: ON
+# (the key is the inverse — "keeps windows" off means windows close on quit)
+defaults write NSGlobalDomain NSQuitAlwaysKeepsWindows -bool false
+
+# Drag windows to screen edges to tile: disabled
+defaults write com.apple.WindowManager EnableTilingByEdgeDrag -bool false
+
+# Drag windows to the menu bar to fill the screen: disabled
+defaults write com.apple.WindowManager EnableTopTilingByEdgeDrag -bool false
+
+# Hold ⌥ while dragging windows to tile: disabled
+defaults write com.apple.WindowManager EnableTilingOptionAccelerator -bool false
+
+# Tiled windows have margins: disabled
+defaults write com.apple.WindowManager EnableTiledWindowMargins -bool false
+
+# ==============================================================================
+# MISSION CONTROL
+# ==============================================================================
+
+# When switching to an application, switch to a Space with open windows: ON
+defaults write NSGlobalDomain AppleSpacesSwitchOnActivate -bool true
+
+# Group windows by application: ON
+defaults write com.apple.dock expose-group-apps -bool true
+
+# Displays have separate Spaces: ON (the key is the inverse)
+defaults write com.apple.spaces spans-displays -bool false
+
+# ==============================================================================
+# HOT CORNERS
+# ==============================================================================
+
+# All four corners unset. 1 would be "disabled" in the UI sense; 0 is no action
+# at all, which is what an unset corner actually stores.
+for corner in tl tr bl br; do
+	defaults write com.apple.dock "wvous-${corner}-corner" -int 0
+	defaults write com.apple.dock "wvous-${corner}-modifier" -int 0
+done
+
+# ==============================================================================
+# APPLY CHANGES
+# ==============================================================================
+
 echo ""
-echo "Restarting Dock..."
-killall Dock
+echo "Restarting Dock and WindowManager..."
+killall Dock 2>/dev/null || true
+# WindowManager reads its domain at launch; without this the Stage Manager and
+# tiling changes wait until the next login.
+killall WindowManager 2>/dev/null || true
 
 echo ""
 echo "📋 ============================================================================"
 echo "📋 MANUAL STEPS REQUIRED 📋"
 echo "📋 ============================================================================"
 echo ""
-echo "⚠️  The following settings cannot be automated and must be configured manually in System Settings > Desktop & Dock:"
+echo "Everything else in Desktop & Dock is scripted above. These are what's left,"
+echo "each for a specific reason:"
 echo ""
-echo "### �️ Desktop & Stage Manager"
+echo "### 🖥️ Desktop & Stage Manager"
 echo ""
-echo "* Show Items: Uncheck 'On Desktop' and 'In Stage Manager'"
-echo "* Click wallpaper to reveal desktop: Only in Stage Manager"
-echo "* Stage Manager: OFF"
+echo "These three only matter if Stage Manager is ever turned ON (it is scripted"
+echo "OFF above), so they can wait until then:"
+echo ""
+echo "* Show Items: uncheck 'In Stage Manager'"
+echo "    No verifiable key — the Stage Manager counterpart to"
+echo "    StandardHideDesktopIcons could not be confirmed in this build."
 echo "* Show recent apps in Stage Manager: OFF"
 echo "* Show windows from an application: All at Once"
+echo "    Key exists (AppWindowGroupingBehavior) but its enum values could not"
+echo "    be confirmed, and guessing would silently pick the wrong mode."
 echo ""
 echo "### 🧩 Widgets"
 echo ""
-echo "* Show Widgets: Uncheck 'On Desktop' and 'In Stage Manager'"
-echo "* Widget style: Automatic"
-echo "* Use iPhone widgets: OFF"
+echo "* Widget style: Automatic — no key found; this is the macOS default, so"
+echo "  a fresh machine is already correct."
 echo ""
 echo "### 🌐 Default web browser"
 echo ""
-echo "* Microsoft Edge.app"
-echo ""
-echo "### 🪟 Windows"
-echo ""
-echo "* Prefer tabs when opening documents: Always"
-echo "* Ask to keep changes when closing documents: ON"
-echo "* Close windows when quitting an application: ON"
-echo "* Drag windows to screen edges to tile: Disabled (requires 'Displays have separate Spaces')"
-echo "* Drag windows to menu bar to full screen: Disabled"
-echo "* Hold ⌥ key while dragging windows to tile: Disabled"
-echo "* Tiled windows have margins: Disabled"
+echo "* Microsoft Edge.app — macOS requires a click-through confirmation;"
+echo "  no command-line path sets this reliably."
 echo ""
 echo "### 🎛️ Mission Control"
 echo ""
 echo "* Automatically rearrange Spaces based on most recent use: OFF"
-echo "* When switching to an application, switch to a Space with open windows for the application: ON"
-echo "* Group windows by application: ON"
-echo "* Displays have separate Spaces: ON"
+echo "    The old 'mru-spaces' key no longer exists anywhere in the Dock binary"
+echo "    on macOS 26, and no replacement was found."
 echo "* Drag windows to top of screen to enter Mission Control: ON"
+echo "    No key found in this build; ON is the macOS default, so a fresh"
+echo "    machine is already correct."
 echo ""
-echo "### ⌨️ Shortcuts"
-echo ""
-echo "* All shortcuts are not set"
-echo ""
-echo "### 🔥 Hot Corners"
-echo ""
-echo "* All corners are unset"
-echo ""
-echo " Note: Some WindowManager changes require logging out and back in to take effect."
+echo " Note: WindowManager and Dock are restarted above, so those changes apply"
+echo " immediately. Spaces changes still need a log out and back in."
 echo ""
 echo "🔗 To access: System Settings > Desktop & Dock"
 echo ""
 echo "📋 ============================================================================"
-
-
