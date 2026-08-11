@@ -48,8 +48,15 @@ until `chezmoi apply` runs, and live edits don't reach the repo until
   changed, commit. Never run `--all` on a machine whose apps aren't fully
   configured — whole-domain export can't tell your settings from fresh-install
   defaults and will overwrite good snapshots with a diff that looks routine.
-  On apply, the import hook restarts the affected apps (Raycast, Rectangle Pro,
-  Stats, Middle, Bartender, Monosnap) — mildly disruptive, expected.
+  On apply, the import hook restarts the apps named in `prefs/domains.conf` —
+  mildly disruptive, expected.
+- **Track a new app's prefs:** `prefs/export.sh --add <domain> [app-to-restart]`
+  appends to `prefs/domains.conf`, the single `domain|app` list that export.sh
+  and the import hook both read. `--add` registers the domain but does NOT
+  export it: it prints the domain's top-level keys so you can review them for
+  secrets first. Decode any flagged `<data>` blob before deciding the domain is
+  safe — Claude Usage's `profiles_v3` blob embeds live OAuth tokens, which is
+  why that app is deliberately not tracked.
 - **Check pref drift:** `prefs/export.sh --check` compares live domains against
   snapshots; `--drifted` prints just the names (machine-readable); `--diff
   <domain>` shows what actually changed. Comparison normalises via `plutil -p`

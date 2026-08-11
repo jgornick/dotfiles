@@ -17,6 +17,8 @@ Usage:
   ./export.sh <domain> [domain ...]   export only the named domains
   ./export.sh --all                   export every tracked domain
   ./export.sh --list                  list the domains this repo tracks
+  ./export.sh --add <domain> [app]    track a new domain (app = process the
+                                      import hook restarts, if any)
   ./export.sh --check [domain ...]    report drift between live and snapshot
   ./export.sh --drifted [domain ...]  print drifted domain names only
   ./export.sh --diff <domain>         show the normalized diff for one domain
@@ -26,17 +28,20 @@ A tracked domain with no snapshot yet is reported but does NOT count as drift.
 EOF
 }
 
-# "monosnap" is a pseudo-domain: Monosnap stores JSON in its container rather
-# than using the defaults system.
-tracked_domains=(
-  com.apple.symbolichotkeys
-  com.knollsoft.Hookshot
-  com.knollsoft.Middle
-  com.raycast.macos
-  com.surteesstudios.Bartender
-  eu.exelban.Stats
-  monosnap
-)
+# Tracked domains live in domains.conf (`domain|app-to-restart` per line),
+# shared with the chezmoi import hook so the two lists cannot drift apart.
+manifest_file="domains.conf"
+
+tracked_domains=()
+load_manifest() {
+  [ -f "${manifest_file}" ] || { echo "${manifest_file} not found" >&2; exit 1; }
+  local line
+  while IFS= read -r line; do
+    case "${line}" in '' | \#*) continue ;; esac
+    tracked_domains+=("${line%%|*}")
+  done <"${manifest_file}"
+}
+load_manifest
 
 # Keys stripped from a snapshot after export, for two distinct reasons — the
 # comment on each says which, so a security strip is never mistaken for tidying.
@@ -106,7 +111,10 @@ noise_com_surteesstudios_Bartender=(
 )
 
 tmpdir=""
-cleanup() { [ -n "${tmpdir}" ] && rm -rf "${tmpdir}"; }
+# `[ -z ... ] ||` rather than `[ -n ... ] &&`: this runs as the EXIT trap, and
+# under `set -e` a trap whose last command fails overrides the script's exit
+# status — `--list` was exiting 1 whenever no tmpdir had been made.
+cleanup() { [ -z "${tmpdir}" ] || rm -rf "${tmpdir}"; }
 trap cleanup EXIT
 ensure_tmp() { [ -n "${tmpdir}" ] || tmpdir="$(mktemp -d)"; }
 
@@ -126,16 +134,17 @@ require_tracked() {
   for domain in "$@"; do
     if ! is_tracked "${domain}"; then
       echo "Unknown domain: ${domain}" >&2
-      echo "Run './export.sh --list' to see tracked domains, or add it to tracked_domains." >&2
+      echo "Run './export.sh --list' to see tracked domains, or './export.sh --add ${domain}' to start tracking it." >&2
       exit 1
     fi
   done
 }
 
-# Look up an array named after a domain (dots -> underscores) and echo its items.
+# Look up an array named after a domain (dots/dashes -> underscores) and echo
+# its items.
 domain_array() {
   local prefix="$1" domain="$2"
-  local ref="${prefix}_${domain//./_}[@]"
+  local ref="${prefix}_${domain//[.-]/_}[@]"
   local item
   for item in ${!ref+"${!ref}"}; do
     printf '%s\n' "${item}"
@@ -377,6 +386,57 @@ export_domain() {
   done < <(strip_scrub "${domain}" "${domain}.plist")
 }
 
+# Registers a domain in domains.conf. Deliberately does NOT export it: the gap
+# between --add and the first export is where you review the keys printed below
+# and write scrub_/noise_ entries — everything in prefs/ lands in a public repo.
+add_domain() {
+  local domain="$1" app="${2:-}"
+
+  if is_tracked "${domain}"; then
+    echo "${domain} is already tracked." >&2
+    exit 1
+  fi
+
+  # `defaults export` succeeds for nonexistent domains (it writes an empty
+  # plist), so probe with `defaults read`, which actually fails.
+  if ! defaults read "${domain}" >/dev/null 2>&1; then
+    echo "No live defaults domain '${domain}' on this machine." >&2
+    echo "Find an app's domain with: mdls -name kMDItemCFBundleIdentifier -raw '/Applications/<App>.app'" >&2
+    exit 1
+  fi
+  ensure_tmp
+  local live="${tmpdir}/add-${domain}.plist"
+  defaults export "${domain}" "${live}"
+
+  printf '%s|%s\n' "${domain}" "${app}" >>"${manifest_file}"
+  echo "Tracking ${domain}${app:+ (import restarts ${app})} — added to ${manifest_file}."
+  echo
+
+  # Blobs get flagged because plutil renders them opaquely: a "settings" blob
+  # can embed live credentials (Claude Usage's profiles_v3 carried OAuth
+  # tokens), and nothing downstream would notice.
+  echo "Its top-level keys — review them, prefs/ is committed to a PUBLIC repo:"
+  local key value flag
+  while IFS=$'\t' read -r key value; do
+    flag=""
+    case "${value}" in
+      '{length = '*) flag="⚠️  opaque data blob — decode it before trusting it" ;;
+    esac
+    if printf '%s\n' "${key}" | grep -qiE 'licen[cs]e|token|secret|passw|credential|account|email|paddle'; then
+      flag="⚠️  name suggests a secret"
+    fi
+    printf '  %-44s%s\n' "${key}" "${flag}"
+  done < <(plutil -p "${live}" | sed -nE 's/^  "([^"]+)" => (.*)$/\1\t\2/p')
+
+  cat <<EOF
+
+Before the first export:
+  1. secret keys      -> scrub_${domain//[.-]/_}=( ... ) in export.sh
+  2. volatile keys    -> noise_${domain//[.-]/_}=( ... ) in export.sh
+  3. then snapshot it -> ./export.sh ${domain}
+EOF
+}
+
 run_checks() {
   local domains=("$@")
   [ ${#domains[@]} -gt 0 ] || domains=("${tracked_domains[@]}")
@@ -405,6 +465,12 @@ case "$1" in
     ;;
   --help | -h)
     usage
+    exit 0
+    ;;
+  --add)
+    shift
+    [ $# -ge 1 ] && [ $# -le 2 ] || { echo "Usage: ./export.sh --add <domain> [app-to-restart]" >&2; exit 1; }
+    add_domain "$@"
     exit 0
     ;;
   --check)

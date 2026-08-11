@@ -1,8 +1,11 @@
 #!/bin/bash
 # Re-imports app preference snapshots (prefs/) whenever a snapshot changes.
-# Update snapshots with prefs/export.sh before committing.
+# Update snapshots with prefs/export.sh before committing. The domains and the
+# apps to restart come from prefs/domains.conf — the one list this script and
+# export.sh both read; add entries with `prefs/export.sh --add`.
 #
 # Snapshot hashes (trigger re-run when any changes):
+# domains.conf: {{ include (joinPath .chezmoi.sourceDir "prefs" "domains.conf") | sha256sum }}
 {{ range glob (joinPath .chezmoi.sourceDir "prefs" "*.plist") -}}
 # {{ base . }}: {{ include . | sha256sum }}
 {{ end -}}
@@ -13,37 +16,50 @@ set -euo pipefail
 
 PREFS_DIR="{{ .chezmoi.sourceDir }}/prefs"
 
-domains=(
-  com.apple.symbolichotkeys
-  com.knollsoft.Hookshot
-  com.knollsoft.Middle
-  com.raycast.macos
-  com.surteesstudios.Bartender
-  eu.exelban.Stats
-)
+# Monosnap stores settings as JSON in its container, not via defaults.
+import_monosnap() {
+  local snapshot="${PREFS_DIR}/monosnap-settings.json"
+  local target="${HOME}/Library/Containers/com.monosnap.monosnap/Data/Library/Monosnap/settings.json"
+  [ -f "${snapshot}" ] && [ -d "$(dirname "${target}")" ] || return 1
+  cp "${snapshot}" "${target}"
+  echo "   imported Monosnap settings"
+}
+
+import_domain() {
+  local domain="$1"
+  local snapshot="${PREFS_DIR}/${domain}.plist"
+  [ -f "${snapshot}" ] || return 1
+  defaults import "${domain}" "${snapshot}"
+  echo "   imported ${domain}"
+}
 
 echo "⚙️  Preference snapshots changed — importing..."
-for domain in "${domains[@]}"; do
-  snapshot="${PREFS_DIR}/${domain}.plist"
-  if [ -f "${snapshot}" ]; then
-    defaults import "${domain}" "${snapshot}"
-    echo "   imported ${domain}"
-  fi
-done
 
-# Monosnap stores settings as JSON in its container, not via defaults
-monosnap_snapshot="${PREFS_DIR}/monosnap-settings.json"
-monosnap_target="${HOME}/Library/Containers/com.monosnap.monosnap/Data/Library/Monosnap/settings.json"
-if [ -f "${monosnap_snapshot}" ] && [ -d "$(dirname "${monosnap_target}")" ]; then
-  cp "${monosnap_snapshot}" "${monosnap_target}"
-  echo "   imported Monosnap settings"
-fi
+apps=()
+while IFS='|' read -r domain app; do
+  case "${domain}" in '' | \#*) continue ;; esac
+
+  if [ "${domain}" = "monosnap" ]; then
+    import_monosnap || continue
+  else
+    import_domain "${domain}" || continue
+  fi
+
+  # Queue this domain's app for restart, once, and only when something was
+  # actually imported for it.
+  [ -n "${app}" ] || continue
+  seen=0
+  for known in ${apps[@]+"${apps[@]}"}; do
+    [ "${known}" = "${app}" ] && seen=1
+  done
+  [ "${seen}" -eq 1 ] || apps+=("${app}")
+done <"${PREFS_DIR}/domains.conf"
 
 killall cfprefsd 2>/dev/null || true
 
 # Restart affected apps so they pick up imported prefs instead of
 # overwriting them with stale in-memory state on quit.
-for app in "Bartender 6" "Middle" "Rectangle Pro" "Raycast" "Stats" "Monosnap"; do
+for app in ${apps[@]+"${apps[@]}"}; do
   if pgrep -xq "${app}"; then
     killall "${app}" 2>/dev/null || true
     sleep 1

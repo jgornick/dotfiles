@@ -123,7 +123,14 @@ macOS hotkeys) are **snapshots**, not live-tracked.
 dots-prefs                              # which domains have drifted
 dots-prefs com.knollsoft.Hookshot       # capture that one
 ./prefs/export.sh --diff <domain>       # see exactly what differs
+./prefs/export.sh --add <domain> "App"  # start tracking a new app's domain
 ```
+
+The tracked list lives in `prefs/domains.conf` (`domain|app-to-restart` per
+line), read by both `export.sh` and the import hook. `--add` registers a domain
+without exporting it: it prints the domain's keys — flagging secret-looking
+names and opaque data blobs — so they get a review before anything lands in
+this public repo.
 
 `export.sh` requires you to name domains — it will not export everything
 implicitly. `defaults export` captures a whole domain and cannot distinguish
