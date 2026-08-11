@@ -2,3 +2,8 @@ pre-commit:
   commands:
     betterleaks:
       run: betterleaks git --pre-commit --redact --staged --verbose
+    # betterleaks is line-based and cannot see inside binary plists, so pref
+    # snapshots get their own scanner, which decodes nested blobs.
+    prefs-scan:
+      glob: "prefs/*.{plist,json}"
+      run: prefs/scan.sh {staged_files}

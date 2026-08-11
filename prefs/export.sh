@@ -363,14 +363,30 @@ diff_domain() {
       "repo/${domain}" "live/${domain}" ) || true
 }
 
+# Refuses to install a staged snapshot that still scans dirty, so a domain
+# with no scrub rules yet (or a new secret in an old domain) can never
+# overwrite the good snapshot on disk.
+install_snapshot() {
+  local staged="$1" target="$2" domain="$3"
+  if ! ./scan.sh "${staged}"; then
+    echo "refused ${domain} — snapshot still contains credential-shaped content (above)." >&2
+    echo "Add scrub_${domain//[.-]/_} entries in export.sh and re-run." >&2
+    return 1
+  fi
+  mv "${staged}" "${target}"
+  echo "exported ${domain}"
+}
+
 export_monosnap() {
   local settings="${HOME}/Library/Containers/com.monosnap.monosnap/Data/Library/Monosnap/settings.json"
-  if [ -f "${settings}" ]; then
-    cp "${settings}" monosnap-settings.json
-    echo "exported monosnap"
-  else
+  if [ ! -f "${settings}" ]; then
     echo "skipped monosnap (settings.json not found)"
+    return
   fi
+  ensure_tmp
+  local staged="${tmpdir}/staged-monosnap.json"
+  cp "${settings}" "${staged}"
+  install_snapshot "${staged}" monosnap-settings.json monosnap
 }
 
 export_domain() {
@@ -381,17 +397,20 @@ export_domain() {
     return
   fi
 
-  if ! defaults export "${domain}" "${domain}.plist" 2>/dev/null; then
+  ensure_tmp
+  local staged="${tmpdir}/staged-${domain}.plist"
+  if ! defaults export "${domain}" "${staged}" 2>/dev/null; then
     echo "skipped ${domain} (domain not found)"
     return
   fi
-  echo "exported ${domain}"
 
   local key
   while IFS= read -r key; do
     [ -n "${key}" ] || continue
     echo "  scrubbed ${key}"
-  done < <(strip_scrub "${domain}" "${domain}.plist")
+  done < <(strip_scrub "${domain}" "${staged}")
+
+  install_snapshot "${staged}" "${domain}.plist" "${domain}"
 }
 
 # Registers a domain in domains.conf. Deliberately does NOT export it: the gap

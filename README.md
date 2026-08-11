@@ -132,6 +132,12 @@ without exporting it: it prints the domain's keys — flagging secret-looking
 names and opaque data blobs — so they get a review before anything lands in
 this public repo.
 
+Behind that review sits a deterministic scanner, `prefs/scan.sh`, which
+decodes every nested value in a snapshot (plists in blobs, JSON in strings,
+base64) and fails on credential shapes. Exports refuse to install a snapshot
+that scans dirty, and a lefthook pre-commit hook scans staged snapshots —
+covering the binary plists that line-based leak scanners cannot read.
+
 `export.sh` requires you to name domains — it will not export everything
 implicitly. `defaults export` captures a whole domain and cannot distinguish
 settings you chose from what an app wrote on first launch, so a blanket export

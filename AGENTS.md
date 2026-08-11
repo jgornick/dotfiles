@@ -72,6 +72,14 @@ until `chezmoi apply` runs, and live edits don't reach the repo until
   Volatile-but-harmless keys go in `noise_key_patterns` (global) or
   `noise_<domain>` (per-domain) instead — those are ignored when comparing but
   still exported.
+- **Snapshot scanning:** `prefs/scan.sh` is the deterministic backstop. It
+  decodes snapshots recursively (nested plists, JSON-in-blobs, base64) and
+  fails on credential shapes: known token prefixes, PEM/JWT, emails,
+  high-entropy strings, secret-promising key names. `export.sh` refuses to
+  install a snapshot that scans dirty, and lefthook runs it on staged
+  `prefs/` files — betterleaks is line-based and cannot see inside binary
+  plists. It catches recognizable shapes only, so a new domain still gets
+  the `--add` review, decoding any opaque blob before trusting it.
 - **Sync helpers:** `dot_config/zsh/dots.zsh` defines `dots-status` /
   `dots-pull` / `dots-apply` / `dots-push` / `dots-prefs` / `dots-merge`. They
   locate the repo via `chezmoi source-path` because `prefs/` is chezmoiignored
