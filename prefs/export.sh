@@ -66,6 +66,10 @@ scrub_com_raycast_macos=(
   'raycastAI_openRouterModelsList' # CACHE: ~248KB model list, 98% of the snapshot
   'calculator_currenciesRefresh'   # CACHE: fetched FX rates
 )
+scrub_HamedElfayome_Claude_Usage=(
+  'profiles_v3'                   # SECRET: JSON blob embedding live Claude OAuth
+                                  # access+refresh tokens and account details
+)
 
 # Volatile keys ignored when comparing. These change on their own without you
 # touching a setting, so counting them as drift would make --check cry wolf.
@@ -108,6 +112,10 @@ noise_com_surteesstudios_Bartender=(
   'ImageIndex'                    # hashes of the icons this Mac actually renders
   'MenuBarColoring-SpaceSettings' # keyed by Space UUIDs, which are per-machine
   'com\.bartender\.windowmap\.persistence'  # window ids -> uuids, per session
+)
+noise_HamedElfayome_Claude_Usage=(
+  'last(Session|Weekly)RecordTime_.*' # usage-tracking timestamps
+  'sentNotifications'                 # which usage alerts have fired
 )
 
 tmpdir=""
