@@ -80,13 +80,17 @@ until `chezmoi apply` runs, and live edits don't reach the repo until
   `prefs/` files — betterleaks is line-based and cannot see inside binary
   plists. It catches recognizable shapes only, so a new domain still gets
   the `--add` review, decoding any opaque blob before trusting it.
-- **Sync helpers:** `dot_config/zsh/dots.zsh` defines `dots-status` /
-  `dots-pull` / `dots-apply` / `dots-push` / `dots-prefs` / `dots-merge`. They
-  locate the repo via `chezmoi source-path` because `prefs/` is chezmoiignored
-  and never lands in `$HOME`. Without a TTY, `dots-push` warns and continues
-  but `dots-apply` refuses — committing is recoverable, overwriting `$HOME`
-  is not. `dots-pull` repairs a missing upstream (see below) and passes
-  `--autostash`.
+- **Sync helpers:** `dot_config/zsh/dots.zsh` defines one command per hop of
+  the pipeline — `dots-fetch` (remote→source) / `dots-apply` (source→live) /
+  `dots-dump` (live→source: re-add, offer pref capture, review, commit) /
+  `dots-push` (source→remote, transport only) — plus `dots-status`,
+  `dots-prefs`, and `dots-merge`. They locate the repo via `chezmoi
+  source-path` because `prefs/` is chezmoiignored and never lands in `$HOME`.
+  `dots-fetch` repairs a missing upstream (see below) and passes
+  `--autostash`. Without a TTY, `dots-apply` refuses (blind apply is
+  forbidden) while the capture side degrades: `dots-dump` skips pref capture
+  and needs `-m` to commit, and `dots-push` pushes committed work only —
+  recoverable, unlike overwriting `$HOME`.
 - **Repo-only files** (docs, scripts not deployed to `$HOME`): add them to
   `.chezmoiignore` or they will be deployed as `~/...` targets.
 

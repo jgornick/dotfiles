@@ -1,5 +1,13 @@
 # dotfiles + prefs sync helpers.
 #
+# The workflow is a pipeline with one command per hop:
+#
+#   remote ──dots-fetch──> source ──dots-apply──> live
+#   remote <──dots-push──  source <──dots-dump──  live
+#
+#   dots-status  where everything stands: remote ↔ source ↔ live, plus prefs
+#   dots-merge   when both source and live changed, reconcile per file/domain
+#
 # Two tracks with deliberately different shapes:
 #
 #   dotfiles  bidirectional. chezmoi apply writes $HOME, chezmoi re-add
@@ -22,7 +30,33 @@ _dots_export_sh() {
 }
 
 dots-status() {
-  echo "— dotfiles —"
+  echo "— source ↔ remote —"
+  local dirty ahead behind
+  dirty="$(chezmoi git -- status --porcelain 2>/dev/null)"
+  ahead="$(chezmoi git -- rev-list --count '@{u}..HEAD' 2>/dev/null)" || ahead=""
+  behind="$(chezmoi git -- rev-list --count 'HEAD..@{u}' 2>/dev/null)" || behind=""
+
+  local synced=1
+  if [ -n "${dirty}" ]; then
+    echo "  uncommitted source changes           -> dots-dump"
+    synced=0
+  fi
+  if [ "${ahead:-0}" -gt 0 ]; then
+    echo "  ${ahead} commit(s) not on the remote        -> dots-push"
+    synced=0
+  fi
+  if [ "${behind:-0}" -gt 0 ]; then
+    echo "  ${behind} commit(s) behind the remote       -> dots-fetch, then dots-apply"
+    synced=0
+  fi
+  if [ -z "${ahead}${behind}" ]; then
+    echo "  (no upstream — remote comparison unavailable)"
+  elif [ "${synced}" -eq 1 ]; then
+    echo "  in sync (as of last fetch — dots-fetch to refresh)"
+  fi
+
+  echo
+  echo "— source ↔ live —"
   local out
   out="$(chezmoi status)"
   if [ -z "${out}" ]; then
@@ -32,8 +66,8 @@ dots-status() {
     cat <<'EOF'
 
   col 1 = $HOME changed since chezmoi wrote it   col 2 = apply will change it
-   _M  source is ahead        -> chezmoi apply
-   MM  $HOME drifted          -> dots-merge, or apply/re-add to pick a side
+   _M  source is ahead        -> dots-apply
+   MM  $HOME drifted          -> dots-merge, or dots-apply/dots-dump to pick a side
    _R  script will run on next apply
 EOF
   fi
@@ -48,7 +82,8 @@ EOF
   "${export_sh}" --check
 }
 
-dots-pull() {
+# remote -> source. Pull only — nothing touches $HOME until dots-apply.
+dots-fetch() {
   local src branch
   src="$(chezmoi source-path 2>/dev/null)" || return 1
   branch="$(git -C "${src}" symbolic-ref --short HEAD 2>/dev/null)" || return 1
@@ -68,15 +103,40 @@ dots-pull() {
     fi
   fi
 
-  # --autostash so an in-progress edit in the source dir doesn't block the pull.
-  # This is what `chezmoi update` does internally.
-  git -C "${src}" pull --autostash --rebase || return 1
-  chezmoi diff
+  local before after
+  before="$(git -C "${src}" rev-parse HEAD 2>/dev/null)"
+  # --autostash so an in-progress edit in the source dir doesn't block the
+  # pull. This is what `chezmoi update` does internally.
+  if ! git -C "${src}" pull --autostash --rebase; then
+    echo
+    echo "Pull failed — likely rebase conflicts with local commits." >&2
+    echo "Resolve in the source repo (chezmoi cd), then: git rebase --continue" >&2
+    return 1
+  fi
+  after="$(git -C "${src}" rev-parse HEAD 2>/dev/null)"
+
+  if [ "${before}" = "${after}" ]; then
+    echo "Already up to date."
+  else
+    echo
+    echo "New commits:"
+    git -C "${src}" log --oneline "${before}..${after}" | sed 's/^/  /'
+  fi
+
   echo
-  echo "Review the diff above, then run: dots-apply"
+  local pending
+  pending="$(chezmoi status)"
+  if [ -z "${pending}" ]; then
+    echo "Live already matches the source — nothing to apply."
+  else
+    echo "Apply would touch:"
+    printf '%s\n' "${pending}" | sed 's/^/  /'
+    echo
+    echo "Review and apply with: dots-apply"
+  fi
 }
 
-# repo -> $HOME. Always shows the diff and asks first: applying overwrites live
+# source -> live. Always shows the diff and asks first: applying overwrites live
 # files and fires run_onchange scripts, and AGENTS.md forbids blind-applying.
 # Takes optional targets, e.g. dots-apply ~/.zshrc
 dots-apply() {
@@ -130,36 +190,100 @@ dots-apply() {
   fi
 }
 
-dots-push() {
+# live -> source. Captures both tracks, shows what changed, commits. Does NOT
+# push — that's dots-push, so review and publish stay separate steps.
+# Extra args go to git commit, e.g. dots-dump -m "msg"; with none it prompts.
+dots-dump() {
   chezmoi re-add || return 1
 
+  # Prefs are live state too, but capture stays opt-in per AGENTS.md: a
+  # whole-domain export can't tell chosen settings from app-written defaults.
   local export_sh drifted
   if export_sh="$(_dots_export_sh)"; then
     drifted="$("${export_sh}" --drifted 2>/dev/null)" || true
     if [ -n "${drifted}" ]; then
-      echo "⚠️  These pref domains have drifted from their snapshots:"
-      printf '%s\n' "${drifted}" | sed 's/^/     /'
-      echo
-      echo "   Capture with:  dots-prefs <domain>"
-      echo "   Inspect with:  dots-merge"
-      echo
-      # Never block when there's no one to answer (scripts, CI, hooks).
+      echo "Drifted pref domains:"
+      printf '%s\n' "${drifted}" | sed 's/^/  /'
       if [ -t 0 ]; then
         local reply
-        read -q "reply?Continue without capturing them? [y/N] " || true
+        read -q "reply?Capture them into the source too? [y/N] " || true
         echo
-        case "${reply}" in
-          [Yy]) ;;
-          *) echo "Aborted — nothing committed."; return 1 ;;
-        esac
+        if [[ "${reply}" == [Yy] ]]; then
+          local domain
+          while IFS= read -r domain; do
+            [ -n "${domain}" ] && "${export_sh}" "${domain}"
+          done <<< "${drifted}"
+        else
+          echo "  left uncaptured — dots-prefs <domain> picks one, dots-merge compares"
+        fi
       else
-        echo "   (not a terminal — continuing without prompting)"
+        echo "  (not a terminal — leaving prefs uncaptured)"
       fi
     fi
   fi
 
   chezmoi git -- add -A || return 1
-  chezmoi git -- commit "$@" || return 1
+  if [ -z "$(chezmoi git -- status --porcelain 2>/dev/null)" ]; then
+    echo "Source already matches live — nothing to commit."
+    return 0
+  fi
+
+  echo
+  echo "— review: what will be committed —"
+  chezmoi git -- diff --cached --stat
+  echo
+  chezmoi git -- diff --cached
+
+  echo
+  if [ $# -gt 0 ]; then
+    chezmoi git -- commit "$@" || return 1
+  else
+    if [ ! -t 0 ]; then
+      echo "Not a terminal and no commit message — changes are staged but not committed." >&2
+      echo "Run: dots-dump -m \"message\"" >&2
+      return 1
+    fi
+    local msg
+    read -r "msg?Commit message (empty aborts): "
+    if [ -z "${msg}" ]; then
+      echo "Aborted — changes remain staged."
+      return 1
+    fi
+    chezmoi git -- commit -m "${msg}" || return 1
+  fi
+  echo "✓ committed — publish with dots-push when ready"
+}
+
+# source -> remote. Transport only: no re-add, no commit — dots-dump does that.
+dots-push() {
+  local dirty
+  dirty="$(chezmoi git -- status --porcelain 2>/dev/null)"
+  if [ -n "${dirty}" ]; then
+    echo "⚠️  Uncommitted source changes — these will NOT be pushed:"
+    printf '%s\n' "${dirty}" | sed 's/^/     /'
+    echo "   Capture and commit first with: dots-dump"
+    # Never block when there's no one to answer (scripts, CI, hooks).
+    if [ -t 0 ]; then
+      local reply
+      read -q "reply?Push only the committed work? [y/N] " || true
+      echo
+      case "${reply}" in
+        [Yy]) ;;
+        *) echo "Aborted — nothing pushed."; return 1 ;;
+      esac
+    else
+      echo "   (not a terminal — pushing committed work only)"
+    fi
+  fi
+
+  local outgoing
+  outgoing="$(chezmoi git -- log --oneline '@{u}..HEAD' 2>/dev/null)" || true
+  if [ -z "${outgoing}" ]; then
+    echo "Nothing to push — remote already has every commit (as of last fetch)."
+    return 0
+  fi
+  echo "Pushing:"
+  printf '%s\n' "${outgoing}" | sed 's/^/  /'
   chezmoi git -- push
 }
 

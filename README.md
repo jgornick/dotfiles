@@ -78,28 +78,38 @@ deliberately asymmetric pipeline instead — import automatic, export manual.
 
 Defined in `dot_config/zsh/dots.zsh`, sourced from `.zshrc`:
 
+One command per hop of the pipeline, in both directions:
+
+```
+remote ──dots-fetch──> source ──dots-apply──> live
+remote <──dots-push──  source <──dots-dump──  live
+```
+
 ```sh
-dots-status   # am I in sync? — both dotfiles and prefs
-dots-pull     # git pull (autostash + rebase) + show diff
-dots-apply    # repo -> $HOME: shows the diff, names the scripts, asks first
-dots-push     # re-add, prompt on uncaptured pref drift, commit, push
+dots-status   # where everything stands: remote ↔ source ↔ live, plus prefs
+dots-fetch    # remote → source: pull (autostash + rebase), preview the apply
+dots-apply    # source → live: review the diff, confirm, apply
+dots-dump     # live → source: re-add + offer pref capture, review, commit
+dots-push     # source → remote: push committed work — no capture, no commit
 dots-prefs    # bare: check for pref drift; with a domain: export it
 dots-merge    # reconcile: dotfiles via 3-way merge, prefs by choosing a side
 ```
 
 `dots-apply` refuses to run without a terminal rather than proceeding, since an
 unattended apply overwriting live files is the blind apply this repo forbids.
-`dots-push` continues in that case — committing is recoverable, overwriting
+The capture side degrades instead of blocking: without a terminal `dots-dump`
+skips pref capture and stops before committing unless given `-m`, and
+`dots-push` pushes the committed work — all of that is recoverable, overwriting
 `$HOME` is not.
 
 | Situation | Command |
 |---|---|
 | What differs? | `dots-status` |
-| Get remote changes | `dots-pull` → review → `dots-apply` |
-| Captured a live dotfile edit | `dots-push -m "msg"` |
-| Edit via the repo instead | `chezmoi edit ~/.zshrc` → `chezmoi apply` |
-| Changed an app's settings | `dots-prefs <domain>` → `dots-push -m "msg"` |
-| **Both sides changed** | `dots-merge` → then `dots-push` |
+| Get remote changes | `dots-fetch` → `dots-apply` |
+| Made live edits (dotfiles or app settings) | `dots-dump` → `dots-push` |
+| Edit via the repo instead | `chezmoi edit ~/.zshrc` → `dots-apply` |
+| Capture a single pref domain | `dots-prefs <domain>` → `dots-dump` |
+| **Both sides changed** | `dots-merge` → `dots-dump` → `dots-push` |
 
 ### Reading `chezmoi status`
 
