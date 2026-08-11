@@ -1,0 +1,103 @@
+" Minimal, plugin-free vim config.
+"
+" EDITOR=vim, so this is what `git commit`, `git rebase -i`, and `chezmoi edit`
+" drop into — those cases are treated as first-class below, not afterthoughts.
+" Deliberately no plugin manager: nothing here needs installing to work on a
+" fresh machine, which is the whole point of a dotfiles repo.
+
+set nocompatible          " vim, not vi — must come first, it resets other options
+syntax enable
+filetype plugin indent on
+
+" ── Editing ──────────────────────────────────────────────────────────────────
+set encoding=utf-8
+set backspace=indent,eol,start   " make backspace behave like everywhere else
+set hidden                       " allow switching away from a modified buffer
+set autoread                     " pick up changes made outside vim
+set nojoinspaces                 " one space after a period, not two
+
+" 2-space indent matches the shell/zsh in this repo. Overridden per-filetype
+" below where a language has a stronger convention.
+set expandtab
+set shiftwidth=2
+set tabstop=2
+set softtabstop=2
+set autoindent
+set shiftround
+
+" ── Display ──────────────────────────────────────────────────────────────────
+set number
+set ruler
+set showcmd
+set laststatus=2
+set scrolloff=3           " keep context visible when scrolling to an edge
+set display+=lastline
+set nowrap
+set list
+set listchars=tab:▸\ ,trail:·,nbsp:␣   " make invisible whitespace visible
+set title
+
+if has('termguicolors') && $COLORTERM =~# 'truecolor\|24bit'
+  set termguicolors
+endif
+set background=dark
+
+" ── Searching ────────────────────────────────────────────────────────────────
+set incsearch
+set hlsearch
+set ignorecase
+set smartcase             " ignorecase, unless the pattern has a capital
+nnoremap <silent> <Esc><Esc> :nohlsearch<CR>
+
+" ── Command line ─────────────────────────────────────────────────────────────
+set wildmenu
+set wildmode=longest:full,full
+set wildignore+=.git/*,node_modules/*,*.o,*.pyc,.DS_Store
+
+" ── Files: keep clutter out of the working tree ───────────────────────────────
+set noswapfile
+set nobackup
+set nowritebackup
+
+" Persistent undo — survives closing a file, which matters more than swap files.
+if has('persistent_undo')
+  let s:undodir = expand('~/.vim/undo')
+  if !isdirectory(s:undodir)
+    call mkdir(s:undodir, 'p', 0700)
+  endif
+  let &undodir = s:undodir
+  set undofile
+endif
+
+if has('mouse')
+  set mouse=a
+endif
+
+" ── Filetype tweaks ──────────────────────────────────────────────────────────
+augroup filetype_tweaks
+  autocmd!
+
+  " Commit messages: hard-wrap the body at 72, spell-check it, and always start
+  " on line 1 rather than wherever the last file left the cursor.
+  autocmd FileType gitcommit setlocal textwidth=72 spell colorcolumn=51,73
+  autocmd FileType gitcommit call setpos('.', [0, 1, 1, 0])
+
+  autocmd FileType markdown setlocal wrap linebreak spell textwidth=80
+  autocmd FileType python   setlocal shiftwidth=4 tabstop=4 softtabstop=4
+  autocmd FileType make     setlocal noexpandtab
+
+  " chezmoi source files keep their target's syntax: private_dot_zshrc is zsh,
+  " executable_foo.sh is shell. Without this they open as plain text.
+  autocmd BufRead,BufNewFile *dot_zshrc*,*dot_zshenv*,*dot_zprofile* setlocal filetype=zsh
+  autocmd BufRead,BufNewFile *dot_gitconfig* setlocal filetype=gitconfig
+  autocmd BufRead,BufNewFile *dot_vimrc*     setlocal filetype=vim
+augroup END
+
+" Reopen a file where you left it — but not for commit messages, handled above.
+augroup restore_cursor
+  autocmd!
+  autocmd BufReadPost *
+    \ if line("'\"") > 1 && line("'\"") <= line("$") && &filetype !=# 'gitcommit' |
+    \   execute "normal! g`\"" |
+    \ endif
+augroup END
