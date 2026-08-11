@@ -73,7 +73,9 @@ noise_key_patterns=(
   '.*[Hh]eartbeat.*'              # analytics pings
   '.*[Ll]ast[Pp]ing.*'
   '.*[Cc]heck.*[Dd]ate.*'         # "…lastAppUpdateCheckDate"
-  '.*[Cc]heck_?ts'                # "updater_check_ts"
+  '.*_ts'                         # unix-timestamp bookkeeping: updater_check_ts,
+                                  # updater_install_ts — the _ts suffix is only
+                                  # ever used for these, never for a setting
   '.*[Ll]astCheck.*'
   'firstLaunch.*'
   'install_date'
@@ -93,6 +95,14 @@ noise_com_raycast_macos=(
 )
 noise_eu_exelban_Stats=(
   'version'                       # app version, bumps on every update
+)
+noise_com_surteesstudios_Bartender=(
+  # Both are per-machine by construction, so they can never converge across
+  # Macs. Still exported (a fresh machine wants something there), just not
+  # counted as drift.
+  'ImageIndex'                    # hashes of the icons this Mac actually renders
+  'MenuBarColoring-SpaceSettings' # keyed by Space UUIDs, which are per-machine
+  'com\.bartender\.windowmap\.persistence'  # window ids -> uuids, per session
 )
 
 tmpdir=""
@@ -137,6 +147,38 @@ top_level_keys() {
   plutil -p "$1" 2>/dev/null | sed -nE 's/^  "([^"]+)" =>.*/\1/p'
 }
 
+# Print one top-level entry from a normalized dump, including any nested block
+# it owns. Matched with index() rather than a regex so keys containing regex
+# metacharacters (com.bartender.windowmap.persistence) behave.
+extract_block() {
+  awk -v key="$2" '
+    BEGIN { want = "  \"" key "\" =>" }
+    !inblk && index($0, want) == 1 {
+      print
+      if ($0 ~ /[{(]$/) inblk = 1
+      next
+    }
+    inblk {
+      print
+      if ($0 ~ /^  [})]/) inblk = 0
+    }
+  ' "$1"
+}
+
+# Names of top-level keys whose values differ between two normalized dumps.
+# Comparing per key rather than diffing raw lines is what lets a change buried
+# inside a nested dict still be reported as "ProfileSettings" instead of the
+# useless "something on line 24".
+changed_top_level_keys() {
+  local a="$1" b="$2" key
+  { sed -nE 's/^  "([^"]+)" =>.*/\1/p' "${a}"
+    sed -nE 's/^  "([^"]+)" =>.*/\1/p' "${b}"; } | sort -u | while IFS= read -r key; do
+    [ -n "${key}" ] || continue
+    cmp -s <(extract_block "${a}" "${key}") <(extract_block "${b}" "${key}") \
+      || printf '%s\n' "${key}"
+  done
+}
+
 # Remove every top-level key matching this domain's scrub patterns. Echoes the
 # names removed so callers can report them. Patterns are expanded against the
 # file's actual keys, so a product-id change can't cause a silent miss.
@@ -176,7 +218,21 @@ EOF
 # Raycast scrub above, the only data value left is Stats' Clock_list (220B).
 normalize() {
   local file="$1" regex="$2"
-  plutil -p "${file}" 2>/dev/null | grep -vE "${regex}" || true
+  # Drop noise keys including any nested block they own. A plain line filter
+  # would strip `"key" => {` but leave its children behind, which is how
+  # com.bartender.windowmap.persistence (a per-session window-id map) kept
+  # showing up as drift.
+  plutil -p "${file}" 2>/dev/null | awk -v re="${regex}" '
+    skip {
+      if ($0 ~ /^  [})]/) skip = 0    # closing line at top-level indent
+      next
+    }
+    $0 ~ re {
+      if ($0 ~ /[{(]$/) skip = 1      # entry opens a nested block
+      next
+    }
+    { print }
+  ' || true
 }
 
 # Writes the normalized live/repo text pair into $tmpdir. Returns:
@@ -254,16 +310,14 @@ check_domain() {
     return 0
   fi
 
-  # `diff` exits 1 when files differ, which `pipefail` would turn into an abort.
   local keys count
-  keys="$( { diff "${tmpdir}/repo/${domain}" "${tmpdir}/live/${domain}" || true; } \
-    | sed -nE 's/^[<>]   "([^"]+)" =>.*/\1/p' | sort -u)"
+  keys="$(changed_top_level_keys "${tmpdir}/repo/${domain}" "${tmpdir}/live/${domain}")"
   count="$(printf '%s' "${keys}" | grep -c . || true)"
   if [ "${count}" -gt 0 ]; then
     report "drifted" "${domain}" "(${count} keys differ)"
     printf '%s\n' "${keys}" | sed 's/^/                 /'
   else
-    report "drifted" "${domain}" "(nested changes)"
+    report "drifted" "${domain}" "(differences outside any top-level key)"
   fi
   return 0
 }

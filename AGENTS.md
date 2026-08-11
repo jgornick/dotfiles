@@ -66,10 +66,12 @@ until `chezmoi apply` runs, and live edits don't reach the repo until
   `noise_<domain>` (per-domain) instead — those are ignored when comparing but
   still exported.
 - **Sync helpers:** `dot_config/zsh/dots.zsh` defines `dots-status` /
-  `dots-pull` / `dots-push` / `dots-prefs` / `dots-merge`. They locate the repo
-  via `chezmoi source-path` because `prefs/` is chezmoiignored and never lands
-  in `$HOME`. `dots-push` prompts before committing when a domain has drifted,
-  and skips the prompt when stdin isn't a TTY so scripts can't hang.
+  `dots-pull` / `dots-apply` / `dots-push` / `dots-prefs` / `dots-merge`. They
+  locate the repo via `chezmoi source-path` because `prefs/` is chezmoiignored
+  and never lands in `$HOME`. Without a TTY, `dots-push` warns and continues
+  but `dots-apply` refuses — committing is recoverable, overwriting `$HOME`
+  is not. `dots-pull` repairs a missing upstream (see below) and passes
+  `--autostash`.
 - **Repo-only files** (docs, scripts not deployed to `$HOME`): add them to
   `.chezmoiignore` or they will be deployed as `~/...` targets.
 
@@ -115,3 +117,12 @@ without applying. For a fresh-machine simulation:
 - `setup.sh` fetches the Brewfile from raw GitHub at
   `master/private_dot_Brewfile` — if the source layout moves, update that
   path and the local fallback in `setup.sh`.
+- `git filter-repo` drops the `origin` remote, and re-adding it does **not**
+  restore branch tracking. With `push.default = current` a push still works,
+  so the gap only surfaces later as `git pull` failing with "no tracking
+  information". Re-set it: `git branch --set-upstream-to=origin/master master`.
+- Pref comparison filters noise **structurally**, not by line: a nested value
+  like `com.bartender.windowmap.persistence` would otherwise have its parent
+  line stripped and its children left behind, showing as permanent drift.
+  Drifted keys are reported by comparing per top-level key, so a change buried
+  in a nested dict is named (`ProfileSettings`) rather than "nested changes".

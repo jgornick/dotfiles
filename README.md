@@ -80,16 +80,22 @@ Defined in `dot_config/zsh/dots.zsh`, sourced from `.zshrc`:
 
 ```sh
 dots-status   # am I in sync? — both dotfiles and prefs
-dots-pull     # git pull + show diff — review, then run: chezmoi apply
-dots-push     # re-add, warn on uncaptured pref drift, commit, push
+dots-pull     # git pull (autostash + rebase) + show diff
+dots-apply    # repo -> $HOME: shows the diff, names the scripts, asks first
+dots-push     # re-add, prompt on uncaptured pref drift, commit, push
 dots-prefs    # bare: check for pref drift; with a domain: export it
 dots-merge    # reconcile: dotfiles via 3-way merge, prefs by choosing a side
 ```
 
+`dots-apply` refuses to run without a terminal rather than proceeding, since an
+unattended apply overwriting live files is the blind apply this repo forbids.
+`dots-push` continues in that case — committing is recoverable, overwriting
+`$HOME` is not.
+
 | Situation | Command |
 |---|---|
 | What differs? | `dots-status` |
-| Get remote changes | `dots-pull` → review → `chezmoi apply` |
+| Get remote changes | `dots-pull` → review → `dots-apply` |
 | Captured a live dotfile edit | `dots-push -m "msg"` |
 | Edit via the repo instead | `chezmoi edit ~/.zshrc` → `chezmoi apply` |
 | Changed an app's settings | `dots-prefs <domain>` → `dots-push -m "msg"` |

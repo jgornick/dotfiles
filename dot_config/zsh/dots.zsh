@@ -49,7 +49,28 @@ EOF
 }
 
 dots-pull() {
-  chezmoi git pull -- --rebase || return 1
+  local src branch
+  src="$(chezmoi source-path 2>/dev/null)" || return 1
+  branch="$(git -C "${src}" symbolic-ref --short HEAD 2>/dev/null)" || return 1
+
+  # A branch can lose its upstream without losing its remote: `git filter-repo`
+  # drops the remote outright, and re-adding it does not restore tracking.
+  # `push.default = current` still pushes fine, so the gap only shows up here,
+  # as git's unhelpful "no tracking information". Repair it instead.
+  if ! git -C "${src}" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' >/dev/null 2>&1; then
+    if git -C "${src}" rev-parse --verify -q "origin/${branch}" >/dev/null; then
+      echo "No upstream for '${branch}' — setting it to origin/${branch}."
+      git -C "${src}" branch --set-upstream-to="origin/${branch}" "${branch}" >/dev/null || return 1
+    else
+      echo "'${branch}' has no upstream and origin/${branch} doesn't exist." >&2
+      echo "Add the remote first: git -C ${src} remote add origin <url>" >&2
+      return 1
+    fi
+  fi
+
+  # --autostash so an in-progress edit in the source dir doesn't block the pull.
+  # This is what `chezmoi update` does internally.
+  git -C "${src}" pull --autostash --rebase || return 1
   chezmoi diff
   echo
   echo "Review the diff above, then run: dots-apply"
