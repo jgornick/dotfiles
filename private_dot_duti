@@ -1,85 +1,90 @@
+# Default handlers, applied by .chezmoiscripts/run_onchange_darwin-duti.sh.
+# Measured on macOS 26.6: 41 of the 51 extensions below actually take effect.
+#
+# Only extensions that resolve to a real UTI can be bound at all. An extension
+# no app declares gets a synthesized dyn.* identifier, and LaunchServices
+# refuses handlers for those with error -50. VS Code's Info.plist declares 153
+# extensions; anything outside that set, and outside the system UTIs, has
+# nothing to bind.
+#
+# 28 such extensions were removed from this file (bom cfm cfml cnf conf csr
+# data dist fields haml hotkey htaccess inf keylayout kmlibrary manifest msass
+# opml orig pg rd rdoc readme rhtml sb sts textmate tmp). A sample file for
+# each resolves to no opening application whatsoever, so double-clicking one
+# gets the "choose an application" dialog. The public.plain-text line does NOT
+# rescue them: an unknown extension is typed as dyn.* conforming to
+# public.data, not to plain text. To bind one, do it by hand in Finder via
+# Open With > Change All — it will not be reproducible from this file.
+#
+# A run still prints ~18 "error -50" lines, and most are cosmetic. Nine of
+# them (.coffee .ctp .erb .gemspec .jsx .less .rst .scss .tex) bind correctly
+# via their real UTI while duti additionally tries a dyn variant that is
+# refused — those extensions do work despite the message. The other nine come
+# from the contested block at the bottom.
+
 # plain text files without an extension
 com.microsoft.VSCode public.plain-text all
 
 # executable scripts
 com.microsoft.VSCode public.unix-executable all
 
-com.microsoft.VSCode .as all
-com.microsoft.VSCode .ass all
 com.microsoft.VSCode .bash all
-com.microsoft.VSCode .bom all
 com.microsoft.VSCode .c all
-com.microsoft.VSCode .cfm all
-com.microsoft.VSCode .cfml all
-com.microsoft.VSCode .class all
-com.microsoft.VSCode .cnf all
 com.microsoft.VSCode .coffee all
-com.microsoft.VSCode .conf all
 com.microsoft.VSCode .config all
 com.microsoft.VSCode .cpp all
-com.microsoft.VSCode .crt all
-com.microsoft.VSCode .csr all
 com.microsoft.VSCode .css all
 com.microsoft.VSCode .csv all
 com.microsoft.VSCode .ctp all
-com.microsoft.VSCode .dat all
-com.microsoft.VSCode .data all
 com.microsoft.VSCode .diff all
-com.microsoft.VSCode .dist all
-com.apple.iWork.Pages .doc all
 com.microsoft.VSCode .erb all
-com.microsoft.VSCode .fields all
 com.microsoft.VSCode .gemspec all
 com.microsoft.VSCode .h all
-com.microsoft.VSCode .haml all
-com.microsoft.VSCode .hotkey all
 com.microsoft.VSCode .hpp all
-com.microsoft.VSCode .htaccess all
-com.microsoft.VSCode .idx all
-com.microsoft.VSCode .inf all
 com.microsoft.VSCode .ini all
 com.microsoft.VSCode .java all
 com.microsoft.VSCode .js all
 com.microsoft.VSCode .jsx all
 com.microsoft.VSCode .json all
 com.microsoft.VSCode .key all
-com.microsoft.VSCode .keylayout all
-com.microsoft.VSCode .kmlibrary all
 com.microsoft.VSCode .less all
 com.microsoft.VSCode .log all
 com.microsoft.VSCode .m all
-com.microsoft.VSCode .manifest all
 com.microsoft.VSCode .md all
 com.microsoft.VSCode .mm all
-com.microsoft.VSCode .msass all
-com.microsoft.VSCode .opml all
-com.microsoft.VSCode .orig all
 com.microsoft.VSCode .patch all
-com.microsoft.VSCode .pg all
 com.microsoft.VSCode .php all
 com.microsoft.VSCode .pl all
-com.microsoft.VSCode .plist all
 com.microsoft.VSCode .py all
 com.microsoft.VSCode .rb all
-com.microsoft.VSCode .rd all
-com.microsoft.VSCode .rdoc all
-com.microsoft.VSCode .readme all
-com.microsoft.VSCode .rhtml all
 com.microsoft.VSCode .rst all
-com.microsoft.VSCode .sb all
 com.microsoft.VSCode .scss all
 com.microsoft.VSCode .sh all
-com.microsoft.VSCode .srt all
 com.microsoft.VSCode .strings all
 com.microsoft.VSCode .stc all
-com.microsoft.VSCode .sts all
-com.microsoft.VSCode .sub all
 com.microsoft.VSCode .tex all
-com.microsoft.VSCode .textmate all
-com.microsoft.VSCode .tmp all
 com.microsoft.VSCode .ts all
 com.microsoft.VSCode .tsx all
 com.microsoft.VSCode .tsv all
-com.microsoft.VSCode .utf all
 com.microsoft.VSCode .xml all
 com.microsoft.VSCode .yaml all
+com.microsoft.VSCode .plist all
+
+# Contested: another app owns the type and keeps it. Kept because they record
+# the intent, but none of these take effect today — verified by querying each
+# after a run:
+#   .as -> Archive Utility   .class -> JavaLauncher   .crt -> Keychain Access
+#   .doc -> TextEdit (this line wants Pages)
+#   .ass .dat .idx .srt .sub .utf -> VLC
+# Nine of them also emit the error -50 above; .doc is the odd one out, where
+# duti reports success and exits 0 yet the association still does not change.
+com.microsoft.VSCode .as all
+com.microsoft.VSCode .ass all
+com.microsoft.VSCode .class all
+com.microsoft.VSCode .crt all
+com.microsoft.VSCode .dat all
+com.apple.iWork.Pages .doc all
+com.microsoft.VSCode .idx all
+com.microsoft.VSCode .srt all
+com.microsoft.VSCode .sub all
+com.microsoft.VSCode .utf all
