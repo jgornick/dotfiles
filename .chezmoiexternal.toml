@@ -1,0 +1,12 @@
+# External content pulled into $HOME by `chezmoi apply` (cached locally,
+# re-fetched at most once per refreshPeriod). Keeps upstream code out of this
+# repo while still working on a fresh machine with no manual installs.
+
+# Catppuccin colorscheme as a native vim8 package — no plugin manager needed;
+# `:colorscheme` searches pack/*/start/ directly. MIT licensed.
+[".vim/pack/catppuccin/start/vim"]
+    type = "archive"
+    url = "https://github.com/catppuccin/vim/archive/refs/heads/main.tar.gz"
+    exact = true
+    stripComponents = 1
+    refreshPeriod = "168h"

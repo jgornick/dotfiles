@@ -115,6 +115,47 @@ defaults write com.apple.finder ShowStatusBar -bool true
 defaults write com.apple.finder FavoriteTagNames -array
 
 # ==============================================================================
+# SIDEBAR
+# ==============================================================================
+
+# Favorites are not a defaults key. Finder keeps them in the LSSharedFileList
+# "favorite items" list owned by sharedfilelistd; its on-disk file
+# (~/Library/Application Support/com.apple.sharedfilelist/*.FavoriteItems.sfl4)
+# is TCC-protected and a bookmark-data archive, not something to write by hand.
+# The LSSharedFileList C API has been deprecated since 10.11 but is still what
+# Finder itself uses — verified on 26.6: snapshot, insert, and live sidebar
+# update all work. osascript's ObjC bridge reaches it with no toolchain and no
+# Full Disk Access, so nothing needs installing (mysides is a 2017 .pkg cask
+# that wants an interactive sudo — same API, worse fit). Finder picks the change
+# up immediately; no restart needed. Idempotent: skips paths already listed.
+add_sidebar_favorite() {
+	if [ ! -d "$1" ]; then
+		echo "✗ Not a directory, skipping sidebar favorite: $1"
+		return
+	fi
+	osascript -l JavaScript - "$1" <<'EOF'
+ObjC.import('CoreServices');
+function run(argv) {
+	const target = $.NSURL.fileURLWithPath(argv[0]).standardizedURL.path.js;
+	const list = $.LSSharedFileListCreate($(), $.kLSSharedFileListFavoriteItems, $());
+	// Resolve quietly: never prompt or mount a volume just to compare paths.
+	const flags = $.kLSSharedFileListNoUserInteraction | $.kLSSharedFileListDoNotMountVolumes;
+	const snap = ObjC.castRefToObject($.LSSharedFileListCopySnapshot(list, Ref()));
+	for (let i = 0; i < snap.count; i++) {
+		const url = ObjC.castRefToObject($.LSSharedFileListItemCopyResolvedURL(snap.objectAtIndex(i), flags, $()));
+		if (!url.isNil() && url.standardizedURL.path.js === target) {
+			return "• Already in sidebar: " + target;
+		}
+	}
+	const item = $.LSSharedFileListInsertItemURL(list, $.kLSSharedFileListItemLast, $(), $(), $.NSURL.fileURLWithPath(argv[0]), $(), $());
+	return (ObjC.castRefToObject(item).isNil() ? "✗ Failed to add to sidebar: " : "✓ Added to sidebar: ") + target;
+}
+EOF
+}
+
+add_sidebar_favorite "$HOME/Projects"
+
+# ==============================================================================
 # APPLY CHANGES
 # ==============================================================================
 

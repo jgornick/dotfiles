@@ -1,0 +1,13 @@
+#!/bin/bash
+# Runs `duti` whenever the .duti file changes to apply file type associations.
+# macOS prompts for confirmation on each handler that actually changes.
+# .duti hash: {{ include "private_dot_duti" | sha256sum }}
+set -euo pipefail
+
+if ! command -v duti >/dev/null 2>&1; then
+  echo "⚠️  duti not installed — skipping file associations"
+  exit 0
+fi
+
+echo "📎 .duti changed — applying file type associations..."
+duti "${HOME}/.duti"
