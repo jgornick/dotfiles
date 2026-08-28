@@ -101,21 +101,34 @@ noise_com_raycast_macos=(
   'raycastAI_model.*'             # refetched model catalogues
   'raycastAI_remoteExtensions'
   'database_lastValidOSVersion'   # tracks the OS, not a setting
+  'database_lastValidAppVersion'  # ditto for the app version
+  'raycast-updates-.*'            # updater bookkeeping: which commitish is
+                                  # installed, when the what's-new sheet showed
+  'commandsPreferencesExpandedItemIds' # which prefs rows are expanded, and it
+                                  # is an unordered set stored as an array, so
+                                  # the order alone reshuffles between reads
 )
 noise_eu_exelban_Stats=(
   'version'                       # app version, bumps on every update
+  'support_pending'               # donation-nag scheduling, not a setting
 )
 noise_com_surteesstudios_Bartender=(
-  # Both are per-machine by construction, so they can never converge across
-  # Macs. Still exported (a fresh machine wants something there), just not
-  # counted as drift.
+  # The first three are per-machine by construction, so they can never converge
+  # across Macs. Still exported (a fresh machine wants something there), just
+  # not counted as drift.
   'ImageIndex'                    # hashes of the icons this Mac actually renders
   'MenuBarColoring-SpaceSettings' # keyed by Space UUIDs, which are per-machine
   'com\.bartender\.windowmap\.persistence'  # window ids -> uuids, per session
+  'TerminationReasons?'           # append-only log of why Bartender last quit;
+                                  # rewritten on every logout, so it would
+                                  # otherwise report drift forever
 )
 noise_HamedElfayome_Claude_Usage=(
   'last(Session|Weekly)RecordTime_.*' # usage-tracking timestamps
   'sentNotifications'                 # which usage alerts have fired
+  'last(Feedback|GitHubStar)PromptDate' # when a nag last appeared. Note
+                                        # neverShowGitHubPrompt is deliberately
+                                        # NOT here — that one is a real choice.
 )
 
 tmpdir=""
@@ -239,13 +252,20 @@ normalize() {
   # would strip `"key" => {` but leave its children behind, which is how
   # com.bartender.windowmap.persistence (a per-session window-id map) kept
   # showing up as drift.
+  #
+  # All three bracket types must be listed. Arrays render as `[` ... `]`, and
+  # omitting those dropped an array key's header line while leaving its elements
+  # orphaned in the output — the diff then belonged to no top-level key at all,
+  # which is what `--check` was reporting for Raycast's
+  # commandsPreferencesExpandedItemIds. `]` is first inside the closing bracket
+  # expression because that is the only portable way to match a literal `]`.
   plutil -p "${file}" 2>/dev/null | awk -v re="${regex}" '
     skip {
-      if ($0 ~ /^  [})]/) skip = 0    # closing line at top-level indent
+      if ($0 ~ /^  []})]/) skip = 0   # closing line at top-level indent
       next
     }
     $0 ~ re {
-      if ($0 ~ /[{(]$/) skip = 1      # entry opens a nested block
+      if ($0 ~ /[{([]$/) skip = 1     # entry opens a nested block
       next
     }
     { print }

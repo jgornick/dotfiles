@@ -47,6 +47,15 @@ SUSPECT_KEY = re.compile(
 # UUIDs and plain hex (device ids, colors) are common in prefs and excluded.
 CANDIDATE = re.compile(r'[A-Za-z0-9+/_\-=]{28,256}')
 HEXISH = re.compile(r'^[0-9A-Fa-f\-]+$')
+# A canonical UUID carrying a readable suffix — Bartender names every menu bar
+# item this way (`82AF6838-…-D24C691F410F-CPU_bar_chart`). The bare UUID is
+# already covered by HEXISH, but the suffix introduces non-hex letters, so the
+# whole token used to reach the entropy test and trip it. Anchored end to end
+# and the suffix is restricted to identifier characters, so this cannot swallow
+# a credential that merely happens to begin with UUID-shaped bytes.
+UUID_TAGGED = re.compile(
+    r'^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-'
+    r'[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}[-.][A-Za-z0-9_.\-]*$')
 
 findings = []
 
@@ -68,7 +77,7 @@ def scan_text(text, path):
             findings.append((path, f'{label}: {redact(m.group(0))}'))
     for m in CANDIDATE.finditer(text):
         tok = m.group(0)
-        if HEXISH.match(tok):
+        if HEXISH.match(tok) or UUID_TAGGED.match(tok):
             continue
         if entropy(tok) >= 4.4:
             findings.append((path, f'high-entropy string: {redact(tok)}'))
