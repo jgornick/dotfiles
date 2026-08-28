@@ -2,8 +2,9 @@
 "
 " EDITOR=vim, so this is what `git commit`, `git rebase -i`, and `chezmoi edit`
 " drop into — those cases are treated as first-class below, not afterthoughts.
-" Deliberately no plugin manager: nothing here needs installing to work on a
-" fresh machine, which is the whole point of a dotfiles repo.
+" Deliberately no plugin manager: nothing here needs installing by hand to
+" work on a fresh machine. The one external — the catppuccin colorscheme —
+" arrives as a vim8 package via chezmoi itself (.chezmoiexternal.toml).
 
 set nocompatible          " vim, not vi — must come first, it resets other options
 syntax enable
@@ -41,6 +42,12 @@ if has('termguicolors') && $COLORTERM =~# 'truecolor\|24bit'
   set termguicolors
 endif
 set background=dark
+
+" Catppuccin Frappé, pinned — fetched by chezmoi as a native vim8 package
+" (see .chezmoiexternal.toml), so a fresh machine still needs no manual
+" install. It ships 256-color fallbacks for non-truecolor terminals, and
+" silent! keeps vim usable if the package hasn't been fetched yet.
+silent! colorscheme catppuccin_frappe
 
 " ── Searching ────────────────────────────────────────────────────────────────
 set incsearch

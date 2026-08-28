@@ -1,0 +1,16 @@
+# Colima rewrites this Include into ~/.ssh/config on every VM start (its
+# sshConfig setting, default true), always as an absolute path. Carrying it
+# here as a template renders the identical line, so colima finds it already
+# present and leaves the file alone instead of drifting it on each start.
+# .chezmoi.homeDir rather than a literal /Users/joe: this repo is public and
+# shared across machines.
+Include {{ .chezmoi.homeDir }}/.colima/ssh_config
+
+# Machine-local hosts and secrets live in ~/.ssh/config.local (not managed)
+Include ~/.ssh/config.local
+
+Host github.com
+  Hostname github.com
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/github
