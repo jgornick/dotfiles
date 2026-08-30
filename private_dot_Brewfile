@@ -77,3 +77,9 @@ cask "vlc"
 cask "hamed-elfayome/claude-usage/claude-usage-tracker", trusted: true
 cask "pear-devs/pear/pear-desktop", trusted: true
 mas "Monosnap", id: 540348655
+
+# VS Code extensions, installed via `code --install-extension`. The Catppuccin
+# pack pulls in catppuccin-vsc and catppuccin-vsc-icons itself, so only the
+# pack is listed; settings.json already selects "Catppuccin Mocha" plus the
+# matching icon theme.
+vscode "catppuccin.catppuccin-vsc-pack"
