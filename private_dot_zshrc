@@ -94,6 +94,13 @@ eval "$(starship init zsh)"
 
 eval "$(proto activate zsh)"
 
+# worktrunk — wraps `wt` in a shell function so the binary can hand back cd and
+# exec directives, and registers completions (compinit already ran via
+# ez-compinit during `antidote load` above). `command wt` is required: once the
+# function exists, a bare `wt` here would re-enter the wrapper instead of the
+# binary. Guarded so a machine without worktrunk still gets a working shell.
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
+
 # Machine-local overrides and secrets (not managed by chezmoi)
 [ -f "${HOME}/.zshrc.local" ] && source "${HOME}/.zshrc.local"
 
