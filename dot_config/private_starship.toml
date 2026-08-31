@@ -3,6 +3,7 @@
 command_timeout=1000
 
 format = """
+${custom.wtint}\
 [](fg:red)\
 [](bg:peach fg:red)\
 $directory\
@@ -19,6 +20,16 @@ $line_break\
 $character"""
 
 palette = 'catppuccin_frappe'
+
+[custom.wtint]
+# wtint — a dot in the current worktree's color, matching the terminal tint and
+# the VS Code status bar. $WTINT_ANSI is exported by the wtint zsh plugin; the
+# module hides itself outside a worktree, and on machines without wtint at all.
+when = 'test -n "$WTINT_COLOR"'
+command = 'printf "%s●\033[0m" "$WTINT_ANSI"'
+format = "[$output ]($style)"
+style = ""
+description = "Worktree color chip"
 
 [directory]
 style = "bg:peach fg:crust"
