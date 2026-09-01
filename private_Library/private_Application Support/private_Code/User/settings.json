@@ -150,5 +150,7 @@
     "dotenv.enableAutocloaking": false,
     "claudeCode.preferredLocation": "panel",
     "chat.viewSessions.orientation": "stacked",
-    "window.zoomLevel": 1
+    "window.zoomLevel": 1,
+    "wtint.chrome": "titleBar",
+    "wtint.palette": "catppuccin-mocha"
 }
