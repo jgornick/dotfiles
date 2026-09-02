@@ -10,5 +10,6 @@ zdharma-continuum/fast-syntax-highlighting
 
 # Tools
 zpm-zsh/bookmarks
+jgornick/wtint
 zsh-users/zsh-history-substring-search
 mattmc3/zsh-safe-rm

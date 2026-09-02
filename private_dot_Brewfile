@@ -1,5 +1,6 @@
 
 tap "hamed-elfayome/claude-usage"
+tap "jgornick/tap"
 tap "pear-devs/pear"
 tap "xcodesorg/made"
 brew "antidote"
@@ -44,6 +45,7 @@ brew "yq"
 brew "zoxide"
 # Homebrew 6 will not load formulae or casks from third-party taps unless they
 # are trusted; `trusted: true` records that trust as part of `brew bundle`.
+brew "jgornick/tap/wtint", trusted: true
 brew "xcodesorg/made/xcodes", trusted: true
 cask "android-commandlinetools"
 cask "appium-inspector"
