@@ -5,3 +5,10 @@ setup.sh
 .vscode/
 prefs
 prefs/**
+
+# Machine-local state, not config. The zpm-zsh/bookmarks plugin rewrites this
+# file in place on every `mark`/`delmark`, so managing it meant a permanent
+# `chezmoi diff` and a "changed since chezmoi last wrote it" prompt on every
+# apply. It also names live project directories, which don't belong in a public
+# repo. The plugin creates an empty one on a fresh machine, so nothing breaks.
+.config/zsh/bookmarks
