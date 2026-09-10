@@ -86,6 +86,11 @@ setopt HIST_REDUCE_BLANKS
 
 ulimit -n 524288
 
+# Completion functions that no plugin or brew formula ships (see the files
+# there for where each came from). Prepended before `antidote load` so the
+# directory is on fpath by the time ez-compinit's deferred compinit runs.
+fpath=("${XDG_CONFIG_HOME}/zsh/completions" $fpath)
+
 # initialize antidote plugins statically with ${ZDOTDIR:-~}/.zsh_plugins.txt
 source /opt/homebrew/opt/antidote/share/antidote/antidote.zsh
 antidote load
