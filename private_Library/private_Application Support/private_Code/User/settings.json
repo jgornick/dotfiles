@@ -154,11 +154,11 @@
     "workbench.secondarySideBar.defaultVisibility": "hidden",
     "dotenv.enableAutocloaking": false,
     "claudeCode.preferredLocation": "panel",
-    "chat.viewSessions.orientation": "stacked",
     "terminal.explorerKind": "external",
     "vscode-yaml-sort.quotingType": "\"",
     "window.zoomLevel": 1,
     "workbench.experimental.modernUI": true,
     "wtint.chrome": "titleBar",
-    "wtint.palette": "catppuccin-mocha"
+    "wtint.palette": "catppuccin-mocha",
+    "claudeCode.hideOnboarding": true
 }
