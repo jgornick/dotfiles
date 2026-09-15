@@ -40,7 +40,7 @@ until `chezmoi apply` runs, and live edits don't reach the repo until
   live file and `chezmoi re-add <target>`.
 - **Add a new file to management:** `chezmoi add <live-path>` (source name is
   derived automatically). Check the resulting prefix matches intended perms.
-- **Change packages:** edit `private_dot_Brewfile`, then `chezmoi apply` —
+- **Change packages:** edit `private_dot_Brewfile.tmpl`, then `chezmoi apply` —
   the `run_onchange` hook runs `brew bundle` because the file's hash (embedded
   in the script template) changed.
 - **Change synced app prefs:** don't edit `prefs/*.plist` by hand; change the
@@ -133,8 +133,8 @@ without applying. For a fresh-machine simulation:
   Brewfile entries fail permanently — they were removed deliberately.
 - mackup 0.11+ removed the `uninstall` subcommand; this repo no longer uses
   mackup at all.
-- `setup.sh` fetches the Brewfile from raw GitHub at
-  `master/private_dot_Brewfile` — if the source layout moves, update that
+- `setup.sh` fetches the Brewfile template from raw GitHub at
+  `master/private_dot_Brewfile.tmpl` — if the source layout moves, update that
   path and the local fallback in `setup.sh`.
 - `git filter-repo` drops the `origin` remote, and re-adding it does **not**
   restore branch tracking. With `push.default = current` a push still works,

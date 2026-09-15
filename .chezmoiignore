@@ -2,5 +2,6 @@ AGENTS.md
 lefthook.yml
 README.md
 setup.sh
+.vscode/
 prefs
 prefs/**
