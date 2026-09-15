@@ -1,6 +1,6 @@
 #!/bin/bash
 # Runs `brew bundle` whenever the Brewfile changes.
-# Brewfile hash: {{ include "private_dot_Brewfile" | sha256sum }}
+# Brewfile hash: {{ include "private_dot_Brewfile.tmpl" | sha256sum }}
 set -euo pipefail
 
 echo "🍺 Brewfile changed — running brew bundle..."

@@ -1,8 +1,8 @@
-
-tap "hamed-elfayome/claude-usage"
+# All machines
 tap "jgornick/tap"
 tap "pear-devs/pear"
 tap "xcodesorg/made"
+
 brew "antidote"
 brew "appium", restart_service: :changed
 brew "aria2"
@@ -43,19 +43,16 @@ brew "worktrunk"
 brew "xcodegen"
 brew "yq"
 brew "zoxide"
-# Homebrew 6 will not load formulae or casks from third-party taps unless they
-# are trusted; `trusted: true` records that trust as part of `brew bundle`.
+
 brew "jgornick/tap/wtint", trusted: true
 brew "xcodesorg/made/xcodes", trusted: true
+
 cask "android-commandlinetools"
 cask "appium-inspector"
 cask "bartender"
 cask "betterdisplay"
-cask "claude"
-cask "claude-code"
 cask "copilot-cli"
 cask "deskpad"
-cask "discord"
 cask "figma"
 cask "firefox"
 cask "font-roboto"
@@ -63,14 +60,11 @@ cask "font-roboto-mono"
 cask "font-roboto-slab"
 cask "font-sauce-code-pro-nerd-font"
 cask "font-source-code-pro"
-cask "gcloud-cli"
 cask "ghostty"
 cask "google-chrome"
-cask "google-drive"
 cask "inkscape"
 cask "joplin"
 cask "keycastr"
-cask "microsoft-teams"
 cask "middle"
 cask "miro"
 cask "raycast"
@@ -78,12 +72,52 @@ cask "rectangle-pro"
 cask "stats"
 cask "visual-studio-code"
 cask "vlc"
-cask "hamed-elfayome/claude-usage/claude-usage-tracker", trusted: true
 cask "pear-devs/pear/pear-desktop", trusted: true
+
 mas "Monosnap", id: 540348655
 
+# Personal machines only
+{{ if not .work_machine }}
+tap "hamed-elfayome/claude-usage"
+
+cask "claude"
+cask "claude-code"
+cask "discord"
+cask "gcloud-cli"
+cask "google-drive"
+cask "hamed-elfayome/claude-usage/claude-usage-tracker", trusted: true
+cask "microsoft-teams"
+{{ end }}
+
+# Work machines only
+# No work-only packages yet.
+
 # VS Code extensions, installed via `code --install-extension`. The Catppuccin
-# pack pulls in catppuccin-vsc and catppuccin-vsc-icons itself, so only the
-# pack is listed; settings.json already selects "Catppuccin Mocha" plus the
-# matching icon theme.
+# pack pulls in catppuccin-vsc and catppuccin-vsc-icons, so only the pack
+# itself is declared.
+vscode "arcanis.vscode-zipfs"
+vscode "bradlc.vscode-tailwindcss"
 vscode "catppuccin.catppuccin-vsc-pack"
+vscode "christian-kohler.path-intellisense"
+vscode "csstools.postcss"
+vscode "dannyhw.ejs-extended-language-support"
+vscode "dbaeumer.vscode-eslint"
+vscode "editorconfig.editorconfig"
+vscode "github.vscode-pull-request-github"
+vscode "johnpapa.vscode-peacock"
+vscode "leonzalion.vscode-ejs"
+vscode "mgmcdermott.vscode-language-babel"
+vscode "mikestead.dotenv"
+vscode "ms-azuretools.vscode-containers"
+vscode "ms-vscode-remote.remote-containers"
+vscode "ms-vscode.sublime-keybindings"
+vscode "ms-vsliveshare.vsliveshare"
+vscode "orta.vscode-ios-common-files"
+vscode "pascalreitermann93.vscode-yaml-sort"
+vscode "redhat.vscode-yaml"
+vscode "sallar.json-to-js-object"
+vscode "secanis.jenkinsfile-support"
+vscode "sidneys1.gitconfig"
+vscode "sirtori.indenticator"
+vscode "streetsidesoftware.code-spell-checker"
+vscode "tyriar.sort-lines"

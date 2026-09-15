@@ -166,20 +166,37 @@ proto_owned=(
 
 # Resolve Brewfile location: use local copy if running from a cloned repo,
 # otherwise download from GitHub raw content alongside this script.
-# The repo is a chezmoi source, so the Brewfile lives at private_dot_Brewfile.
+# The repo is a chezmoi source, so the Brewfile is a template. Bootstrap runs
+# before chezmoi is installed, so render its single work-machine branch here.
 DOTFILES_RAW_BASE="https://raw.githubusercontent.com/jgornick/dotfiles/master"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-local_brewfile="${script_dir}/private_dot_Brewfile"
+local_brewfile_template="${script_dir}/private_dot_Brewfile.tmpl"
 
-if [ -f "${local_brewfile}" ]; then
-  echo "📍 Using local Brewfile: ${local_brewfile}"
-  brewfile_path="${local_brewfile}"
+case "${DOTFILES_WORK_MACHINE:-false}" in
+  1 | true) work_machine=true ;;
+  0 | false | '') work_machine=false ;;
+  *)
+    echo "DOTFILES_WORK_MACHINE must be true/false or 1/0." >&2
+    exit 1
+    ;;
+esac
+
+if [ -f "${local_brewfile_template}" ]; then
+  echo "📍 Using local Brewfile template: ${local_brewfile_template}"
+  brewfile_template_path="${local_brewfile_template}"
 else
-  echo "📥 Downloading Brewfile from ${DOTFILES_RAW_BASE}/private_dot_Brewfile ..."
-  brewfile_path=$(mktemp "${TMPDIR:-/tmp}/Brewfile.XXXXXX")
-  curl -fsSL "${DOTFILES_RAW_BASE}/private_dot_Brewfile" -o "${brewfile_path}"
-  echo "📍 Using downloaded Brewfile: ${brewfile_path}"
+  echo "📥 Downloading Brewfile template from ${DOTFILES_RAW_BASE}/private_dot_Brewfile.tmpl ..."
+  brewfile_template_path=$(mktemp "${TMPDIR:-/tmp}/Brewfile.template.XXXXXX")
+  curl -fsSL "${DOTFILES_RAW_BASE}/private_dot_Brewfile.tmpl" -o "${brewfile_template_path}"
 fi
+
+brewfile_path=$(mktemp "${TMPDIR:-/tmp}/Brewfile.XXXXXX")
+awk -v work_machine="${work_machine}" '
+  /^\{\{- if not \.work_machine \}\}$/ { skip = work_machine == "true"; next }
+  /^\{\{- end \}\}$/ { skip = false; next }
+  !skip { print }
+' "${brewfile_template_path}" >"${brewfile_path}"
+echo "📍 Using rendered Brewfile: ${brewfile_path}"
 
 # Homebrew 6 refuses to load formulae and casks from third-party taps until they
 # are trusted ($HOMEBREW_REQUIRE_TAP_TRUST defaults on), which aborts a
@@ -200,10 +217,8 @@ echo ""
 
 brew bundle install --no-upgrade --file="${brewfile_path}"
 
-# Clean up temp Brewfile if we downloaded it
-if [ "${brewfile_path}" != "${local_brewfile}" ]; then
-  rm -f "${brewfile_path}"
-fi
+rm -f "${brewfile_path}"
+[ "${brewfile_template_path}" = "${local_brewfile_template}" ] || rm -f "${brewfile_template_path}"
 echo "✅ Homebrew dependencies installation completed"
 echo ""
 
