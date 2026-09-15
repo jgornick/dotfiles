@@ -16,12 +16,46 @@ set -euo pipefail
 
 PREFS_DIR="{{ .chezmoi.sourceDir }}/prefs"
 
+# Work machines do not use Claude Usage. Keep its account-specific state out of
+# their defaults database while continuing to import the shared snapshot on
+# personal Macs.
+skipped_domains=(
+{{- if .work_machine }}
+  "HamedElfayome.Claude-Usage"
+{{- end }}
+)
+
+is_skipped_domain() {
+  local domain="$1" skipped
+  for skipped in "${skipped_domains[@]}"; do
+    [ "${domain}" = "${skipped}" ] && return 0
+  done
+  return 1
+}
+
 # Monosnap stores settings as JSON in its container, not via defaults.
 import_monosnap() {
   local snapshot="${PREFS_DIR}/monosnap-settings.json"
   local target="${HOME}/Library/Containers/com.monosnap.monosnap/Data/Library/Monosnap/settings.json"
   [ -f "${snapshot}" ] && [ -d "$(dirname "${target}")" ] || return 1
-  cp "${snapshot}" "${target}"
+  if [ -f "${target}" ]; then
+    local merged
+    merged="$(mktemp)"
+    jq -s '
+      .[0] as $managed
+      | .[1] as $local
+      | if $local.Locations?["Save Directory"]? then
+          $managed
+          | .Locations = (.Locations // {})
+          | .Locations["Save Directory"] = $local.Locations["Save Directory"]
+        else
+          $managed
+        end
+    ' "${snapshot}" "${target}" >"${merged}"
+    mv "${merged}" "${target}"
+  else
+    cp "${snapshot}" "${target}"
+  fi
   echo "   imported Monosnap settings"
 }
 
@@ -38,6 +72,11 @@ echo "⚙️  Preference snapshots changed — importing..."
 apps=()
 while IFS='|' read -r domain app; do
   case "${domain}" in '' | \#*) continue ;; esac
+
+  if is_skipped_domain "${domain}"; then
+    echo "   skipped ${domain} on this machine"
+    continue
+  fi
 
   if [ "${domain}" = "monosnap" ]; then
     import_monosnap || continue

@@ -121,9 +121,7 @@
     "fonts1" : "DroidSansFallback",
     "fonts3" : ""
   },
-  "Locations" : {
-    "Save Directory" : "\/Users\/joe\/Downloads"
-  },
+  "Locations" : {},
   "Accounts" : {
     "Upload service" : 0,
     "Default upload service" : 0

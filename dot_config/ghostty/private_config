@@ -1,5 +1,10 @@
 theme = Catppuccin Frappe
 
+scrollback-limit = 10000000
+
+# Clear selection highlight after it is copied (e.g. after paste-and-auto-copy)
+selection-clear-on-copy = true
+
 font-size = 16
 font-family = Source Code Pro
 font-style = Regular

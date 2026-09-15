@@ -84,9 +84,11 @@
     },
     "files.trimTrailingWhitespace": true,
     "git.enabled": true,
+    "git.blame.editorDecoration.enabled": false,
     "github.copilot.chat.agent.thinkingTool": true,
     "github.copilot.enable": {
         "*": false,
+        "json": false,
         "markdown": false,
         "plaintext": false,
         "scminput": false
@@ -108,7 +110,7 @@
     "notebook.output.fontFamily": "SauceCodePro Nerd Font Mono",
     "notebook.output.fontSize": 16,
     "redhat.telemetry.enabled": false,
-    "remote.containers.workspaceMountConsistency": "delegated",
+    "dev.containers.workspaceMountConsistency": "delegated",
     "scm.inputFontFamily": "SauceCodePro Nerd Font Mono",
     "scm.inputFontSize": 16,
     "scss.validate": true,
@@ -140,6 +142,9 @@
     "workbench.activityBar.location": "top",
     "githubPullRequests.notifications": "pullRequests",
     "githubPullRequests.experimental.chat": false,
+    "githubPullRequests.defaultMergeMethod": "rebase",
+    "githubPullRequests.deleteBranchAfterMerge": true,
+    "githubPullRequests.pullBranch": "never",
     "gitlens.ai.model": "vscode",
     "gitlens.ai.vscode.model": "copilot:gpt-4.1",
     "githubPullRequests.fileListLayout": "tree",
@@ -150,7 +155,10 @@
     "dotenv.enableAutocloaking": false,
     "claudeCode.preferredLocation": "panel",
     "chat.viewSessions.orientation": "stacked",
+    "terminal.explorerKind": "external",
+    "vscode-yaml-sort.quotingType": "\"",
     "window.zoomLevel": 1,
+    "workbench.experimental.modernUI": true,
     "wtint.chrome": "titleBar",
     "wtint.palette": "catppuccin-mocha"
 }

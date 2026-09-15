@@ -70,6 +70,9 @@ scrub_HamedElfayome_Claude_Usage=(
   'profiles_v3'                   # SECRET: JSON blob embedding live Claude OAuth
                                   # access+refresh tokens and account details
 )
+scrub_eu_exelban_Stats=(
+  'remote_id'                     # MACHINE: Stats' per-installation identifier
+)
 
 # Volatile keys ignored when comparing. These change on their own without you
 # touching a setting, so counting them as drift would make --check cry wolf.
@@ -405,7 +408,7 @@ export_monosnap() {
   fi
   ensure_tmp
   local staged="${tmpdir}/staged-monosnap.json"
-  cp "${settings}" "${staged}"
+  jq 'del(.Locations["Save Directory"])' "${settings}" >"${staged}"
   install_snapshot "${staged}" monosnap-settings.json monosnap
 }
 
