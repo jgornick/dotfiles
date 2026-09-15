@@ -43,21 +43,33 @@ add_app_to_dock() {
     fi
 }
 
-# Add your desired applications here
-# Customize this list with your preferred apps
-
+# Add applications to the Dock in display order.
 add_app_to_dock "/Applications/Ghostty.app"
+
+{{ if not .work_machine }}
 add_app_to_dock "/Applications/Google Chrome.app"
+{{ end }}
+
+{{ if .work_machine }}
 add_app_to_dock "/Applications/Microsoft Edge.app"
 add_app_to_dock "/Applications/Microsoft Outlook.app"
+{{ end }}
+
 add_app_to_dock "/System/Applications/Messages.app"
+
+{{ if .work_machine }}
 add_app_to_dock "/Applications/Slack.app"
 add_app_to_dock "/Applications/Microsoft Teams.app"
+{{ end }}
+
 add_app_to_dock "/Applications/YouTube Music.app"
 add_app_to_dock "/Applications/Visual Studio Code.app"
 add_app_to_dock "/Applications/Joplin.app"
+
+{{ if .work_machine }}
 add_app_to_dock "/Applications/Miro.app"
 add_app_to_dock "/Applications/Figma.app"
+{{ end }}
 
 # Configure persistent folders in Dock
 # Clear existing persistent folders

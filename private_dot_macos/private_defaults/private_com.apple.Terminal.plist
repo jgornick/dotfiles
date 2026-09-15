@@ -4,22 +4,10 @@
 <dict>
 	<key>Default Window Settings</key>
 	<string>Basic</string>
-	<key>DefaultProfilesVersion</key>
-	<integer>1</integer>
-	<key>HasMigratedDefaults</key>
-	<true/>
-	<key>NSWindow Frame TTAppPreferences</key>
-	<string>2227 765 667 568 0 0 5120 1415 </string>
-	<key>NSWindow Frame TTWindow Basic</key>
-	<string>40 88 1880 1295 0 0 5120 1415 </string>
-	<key>ProfileCurrentVersion</key>
-	<real>2.0699999999999998</real>
 	<key>SecureKeyboardEntry</key>
 	<false/>
 	<key>Startup Window Settings</key>
 	<string>Basic</string>
-	<key>TTAppPreferences Selected Tab</key>
-	<integer>0</integer>
 	<key>Window Settings</key>
 	<dict>
 		<key>Basic</key>

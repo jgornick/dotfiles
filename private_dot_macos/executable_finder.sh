@@ -7,6 +7,10 @@
 # Show all file extensions
 defaults write -globalDomain AppleShowAllExtensions -bool true
 
+# Enable spring-loaded folders with a short activation delay.
+defaults write NSGlobalDomain com.apple.springing.delay -float 0.5
+defaults write NSGlobalDomain com.apple.springing.enabled -bool true
+
 # Show hidden files by default
 defaults write com.apple.finder AppleShowAllFiles -bool true
 

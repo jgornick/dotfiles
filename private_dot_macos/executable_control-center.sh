@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# Menu bar clock: analog face.
-# Choosing analog is the whole setting — macOS greys out the digital-only
-# options (seconds, AM/PM, day of week, date) once IsAnalog is set, so the
-# leftover ShowAMPM/ShowDayOfWeek/ShowDate keys are simply ignored. They are
-# left in place deliberately so switching back to digital restores them.
+# Menu bar clock: analog face. The digital display preferences are also kept
+# here so switching back to digital restores the intended values.
 defaults write com.apple.menuextra.clock IsAnalog -bool true
+defaults write com.apple.menuextra.clock ShowAMPM -bool true
+defaults write com.apple.menuextra.clock ShowDate -bool false
+defaults write com.apple.menuextra.clock ShowDayOfWeek -bool true
 
 # Recent documents, applications, and servers: 10.
 # NSRecentDocumentsLimit is confirmed in this build's shared cache (with its
@@ -116,4 +116,3 @@ echo ""
 echo "🔗 To access: System Settings > Control Center"
 echo ""
 echo "📋 ============================================================================"
-

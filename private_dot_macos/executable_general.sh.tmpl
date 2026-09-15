@@ -2,13 +2,16 @@
 
 # Disable Resume system-wide
 defaults write com.apple.systempreferences NSQuitAlwaysKeepsWindows -bool false
+defaults write NSGlobalDomain AppleMiniaturizeOnDoubleClick -bool false
 
 # Add specified apps to launch at login
 # Usage: Edit the APPS array below to include the full app names (as shown in Finder)
 APPS=(
 	"Bartender 6"
 	"BetterDisplay"
+{{ if not .work_machine }}
 	"Claude Usage"
+{{ end }}
 	"Ghostty"
 	"Middle"
 	"Monosnap"
@@ -34,4 +37,3 @@ for APP in "${APPS[@]}"; do
 	osascript -e "tell application \"System Events\" to make login item at end with properties {name: \"${APP}\", path: \"${APP_PATH}\", hidden:false}" >/dev/null
 	echo "✓ Added login item: ${APP}"
 done
-
