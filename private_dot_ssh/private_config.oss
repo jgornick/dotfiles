@@ -4,4 +4,4 @@ Host github.com
   IdentitiesOnly=yes
   AddKeysToAgent no
   UseKeychain no
-  IdentityFile ~/.ssh/github
+  IdentityFile ~/.ssh/github.oss

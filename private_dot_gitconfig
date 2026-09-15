@@ -41,6 +41,14 @@
   rb = rebase
   df = diff
   dfs = df --staged
+  dfr = "!git fetch && git diff @{upstream}"
+
+  # The reusable stash helper accepts an optional stash index.
+  stash-helper = "!f() { cmd=$1; shift; if [[ $1 =~ ^[0-9]+$ ]]; then idx=\"stash@{$1}\"; shift; else idx=\"\"; fi; git stash $cmd $idx \"$@\"; }; f"
+  sl = stash list
+  sdf = !git stash-helper show -p -u --no-renames
+  spu = !git stash-helper push
+  spo = !git stash-helper pop
 
   # Amend to last commit.
   ca = commit --amend
@@ -132,3 +140,7 @@
 
 [includeIf "gitdir:~/Projects/oss/"]
   path = ~/.gitconfig.oss
+
+# Authentication helpers are machine-local and populated by `gh auth setup-git`.
+[include]
+  path = ~/.gitconfig.local

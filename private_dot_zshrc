@@ -17,6 +17,7 @@ fi
 # proto — language runtime manager (node, ruby, python, go, rust, java, etc.)
 export PROTO_HOME="${HOME}/.proto"
 export PATH="${PROTO_HOME}/shims:${PROTO_HOME}/bin:${PATH}"
+export PATH="${HOME}/.local/bin:${PATH}"
 
 # Gem executables from proto's ruby (e.g. cocoapods' pod) have no proto shim;
 # appended so the shims above still win for ruby/gem/bundle
@@ -74,9 +75,25 @@ export XDG_CONFIG_HOME="${HOME}/.config"
 
 export LS_COLORS=$(vivid generate catppuccin-mocha)
 
+# Keep enough history for interactive search across concurrent shell sessions.
+HISTFILE=~/.zsh_history
+HISTSIZE=50000
+SAVEHIST=50000
+setopt APPEND_HISTORY
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_REDUCE_BLANKS
+
+ulimit -n 524288
+
 # initialize antidote plugins statically with ${ZDOTDIR:-~}/.zsh_plugins.txt
 source /opt/homebrew/opt/antidote/share/antidote/antidote.zsh
 antidote load
+
+# zsh-history-substring-search is loaded above through antidote.
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+HISTORY_SUBSTRING_SEARCH_ENSURE_UNIQUE=1
 
 alias ..='cd ../'
 alias ...='cd ../..'
