@@ -27,7 +27,7 @@ skipped_domains=(
 
 is_skipped_domain() {
   local domain="$1" skipped
-  for skipped in "${skipped_domains[@]}"; do
+  for skipped in ${skipped_domains[@]+"${skipped_domains[@]}"}; do
     [ "${domain}" = "${skipped}" ] && return 0
   done
   return 1
