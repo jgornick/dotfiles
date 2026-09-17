@@ -1,0 +1,9 @@
+# Personal Macs use their one GitHub key; work machines use a separate
+# ~/.ssh/github.oss for repos under ~/Projects/oss.
+Host github.com
+  Hostname github.com
+  UserKnownHostsFile ~/.ssh/known_hosts.oss
+  IdentitiesOnly=yes
+  AddKeysToAgent no
+  UseKeychain no
+  IdentityFile ~/.ssh/github{{ if .work_machine }}.oss{{ end }}
