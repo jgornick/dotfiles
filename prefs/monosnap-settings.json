@@ -2,7 +2,7 @@
   "Video" : {
     "Quality" : "AVCaptureSessionPresetHigh",
     "Capture Mouse Clicks" : false,
-    "Capture Mouse Cursor" : true,
+    "Capture Mouse Cursor" : false,
     "Framerate" : 30
   },
   "Advanced" : {
