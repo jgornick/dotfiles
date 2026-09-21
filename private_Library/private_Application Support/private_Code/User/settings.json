@@ -160,5 +160,13 @@
     "workbench.experimental.modernUI": true,
     "wtint.chrome": "titleBar",
     "wtint.palette": "catppuccin-mocha",
-    "claudeCode.hideOnboarding": true
+    "claudeCode.hideOnboarding": true,
+    "yaml.disableSchemaDetection": [
+        "**/.github/workflows/*.yml",
+        "**/.github/workflows/*.yaml",
+        "**/.gitea/workflows/*.yml",
+        "**/.gitea/workflows/*.yaml",
+        "**/.forgejo/workflows/*.yml",
+        "**/.forgejo/workflows/*.yaml"
+    ]
 }
