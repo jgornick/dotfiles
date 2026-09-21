@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+bookmarks="${HOME}/.config/zsh/bookmarks"
+mkdir -p "$(dirname "${bookmarks}")"
+
+if [ ! -e "${bookmarks}" ]; then
+  (umask 077 && : >"${bookmarks}")
+fi
+
+add_bookmark() {
+  entry="$1"
+  if ! grep -Fqx "${entry}" "${bookmarks}"; then
+    printf '%s\n' "${entry}" >>"${bookmarks}"
+  fi
+}
+
+add_bookmark '~/Projects|p'
+add_bookmark '~/Downloads|d'
+add_bookmark '~/Projects/oss|oss'
