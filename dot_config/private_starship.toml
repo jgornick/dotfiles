@@ -4,7 +4,6 @@ command_timeout = 250
 scan_timeout = 50
 
 format = """
-${env_var.WTINT_NAME}\
 [](fg:red)\
 [](bg:peach fg:red)\
 $directory\
@@ -20,11 +19,6 @@ $line_break\
 $character"""
 
 palette = 'catppuccin_frappe'
-
-[env_var.WTINT_NAME]
-# wtint exports this after its deferred initialization. Native env lookup avoids
-# spawning a shell once per prompt just to decide whether the chip is visible.
-format = "[● $env_value ](bold)"
 
 [directory]
 style = "bg:peach fg:crust"
