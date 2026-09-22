@@ -178,9 +178,23 @@ _dotfiles_worktrunk_activate() {
   typeset -g _DOTFILES_WORKTRUNK_ACTIVATED=1
 }
 
-# Proto installs directory-change and prompt hooks that must exist before a
-# command can select a runtime version.
-_dotfiles_proto_activate || print -ru2 -- 'zsh: proto activation failed'
+_dotfiles_proto_activate_before_command() {
+  if _dotfiles_proto_activate; then
+    add-zsh-hook -d preexec _dotfiles_proto_activate_before_command
+  else
+    print -ru2 -- 'zsh: proto activation failed'
+  fi
+}
+
+# Defer Proto in a real terminal so it cannot delay the first prompt. The
+# preexec fallback preserves runtime selection if the user types immediately;
+# non-TTY shells activate eagerly for script compatibility.
+if [[ -t 1 ]] && (( $+functions[zsh-defer] )); then
+  add-zsh-hook preexec _dotfiles_proto_activate_before_command
+  zsh-defer -2 -t 0.5 -c '_dotfiles_proto_activate'
+else
+  _dotfiles_proto_activate || print -ru2 -- 'zsh: proto activation failed'
+fi
 
 # Defer Worktrunk until zle is idle, but keep it usable before then.
 if (( $+commands[wt] )); then

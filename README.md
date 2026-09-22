@@ -41,10 +41,9 @@ The managed zsh configuration defers optional work so the first prompt stays
 responsive:
 
 - Homebrew setup avoids spawning `brew shellenv` for every shell.
-- Worktrunk and worktree tinting initialize after the shell becomes idle, with
-  synchronous fallbacks when needed. Proto activation remains eager so
-  directory-specific runtime selection works before the first command, then
-  refreshes on directory changes instead of every prompt.
+- Worktrunk, worktree tinting, and Proto initialize after the shell becomes
+  idle in a real terminal, with pre-command fallbacks. Non-TTY shells activate
+  Proto eagerly for script compatibility.
 - Completion definitions use a cached and compiled dump. Changing the
   [plugin manifest](./private_dot_zsh_plugins.txt) invalidates the dump.
 - Carapace currently owns npm and Docker completion through cached generated
