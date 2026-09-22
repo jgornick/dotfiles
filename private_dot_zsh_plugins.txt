@@ -2,7 +2,6 @@
 mattmc3/ez-compinit
 zsh-users/zsh-completions
 zsh-users/zsh-autosuggestions
-lukechilds/zsh-better-npm-completion
 
 # Style
 zpm-zsh/colors
@@ -10,6 +9,7 @@ zdharma-continuum/fast-syntax-highlighting
 
 # Tools
 zpm-zsh/bookmarks
-jgornick/wtint
+# Delay worktree tinting so it cannot block the first command.
+jgornick/wtint kind:defer
 zsh-users/zsh-history-substring-search
 mattmc3/zsh-safe-rm

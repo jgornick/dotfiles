@@ -1,15 +1,15 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
-command_timeout=1000
+command_timeout = 250
+scan_timeout = 50
 
 format = """
-${custom.wtint}\
+${env_var.WTINT_NAME}\
 [](fg:red)\
 [](bg:peach fg:red)\
 $directory\
 [](bg:yellow fg:peach)\
 $git_branch\
-$git_status\
 [](fg:yellow bg:green)\
 [](fg:green bg:sapphire)\
 $conda\
@@ -21,15 +21,10 @@ $character"""
 
 palette = 'catppuccin_frappe'
 
-[custom.wtint]
-# wtint — a dot in the current worktree's color, matching the terminal tint and
-# the VS Code status bar. $WTINT_ANSI is exported by the wtint zsh plugin; the
-# module hides itself outside a worktree, and on machines without wtint at all.
-when = 'test -n "$WTINT_COLOR"'
-command = 'printf "%s●\033[0m" "$WTINT_ANSI"'
-format = "[$output ]($style)"
-style = ""
-description = "Worktree color chip"
+[env_var.WTINT_NAME]
+# wtint exports this after its deferred initialization. Native env lookup avoids
+# spawning a shell once per prompt just to decide whether the chip is visible.
+format = "[● $env_value ](bold)"
 
 [directory]
 style = "bg:peach fg:crust"
@@ -49,9 +44,10 @@ symbol = ""
 style = "bg:yellow"
 format = '[[ $symbol $branch ](fg:crust bg:yellow)]($style)'
 
+# Running `git status` for every prompt is too expensive in large worktrees.
+# Use `git status` on demand; the branch remains visible below.
 [git_status]
-style = "bg:yellow"
-format = '[[($all_status$ahead_behind )](fg:crust bg:yellow)]($style)'
+disabled = true
 
 [character]
 disabled = false

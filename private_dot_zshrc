@@ -4,10 +4,27 @@
 # Development Environment Configuration
 # *******************************************************************************
 
-# Initialize (home)brew
-if [ -z ${HOMEBREW_PREFIX+x} ]; then
-  export HOMEBREW_PREFIX=$([[ -d "/opt/homebrew" ]] && echo "/opt/homebrew" || echo "/usr/local")
-  eval "$(${HOMEBREW_PREFIX}/bin/brew shellenv)"
+# Set this before loading anything that uses XDG paths.
+export XDG_CONFIG_HOME="${HOME}/.config"
+
+# Initialize Homebrew without spawning `brew shellenv` for every shell.
+if [[ -z ${HOMEBREW_PREFIX+x} ]]; then
+  if [[ -x /opt/homebrew/bin/brew ]]; then
+    export HOMEBREW_PREFIX=/opt/homebrew
+  elif [[ -x /usr/local/bin/brew ]]; then
+    export HOMEBREW_PREFIX=/usr/local
+  else
+    export HOMEBREW_PREFIX=/usr/local
+  fi
+fi
+
+export HOMEBREW_CELLAR="${HOMEBREW_CELLAR:-${HOMEBREW_PREFIX}/Cellar}"
+export HOMEBREW_REPOSITORY="${HOMEBREW_REPOSITORY:-${HOMEBREW_PREFIX}}"
+typeset -U path
+path=("${HOMEBREW_PREFIX}/bin" "${HOMEBREW_PREFIX}/sbin" $path)
+export INFOPATH="${HOMEBREW_PREFIX}/share/info:${INFOPATH:-}"
+if [[ -n ${MANPATH-} ]]; then
+  export MANPATH="${HOMEBREW_PREFIX}/share/man:${MANPATH}"
 fi
 
 #
@@ -16,37 +33,53 @@ fi
 
 # proto — language runtime manager (node, ruby, python, go, rust, java, etc.)
 export PROTO_HOME="${HOME}/.proto"
-export PATH="${PROTO_HOME}/shims:${PROTO_HOME}/bin:${PATH}"
-export PATH="${HOME}/.local/bin:${PATH}"
+path=("${PROTO_HOME}/shims" "${PROTO_HOME}/bin" "${HOME}/.local/bin" $path)
 
 # Gem executables from proto's ruby (e.g. cocoapods' pod) have no proto shim;
 # appended so the shims above still win for ruby/gem/bundle
 for gem_bin in "${PROTO_HOME}"/tools/ruby/*/bin(N); do
-  export PATH="${PATH}:${gem_bin}"
+  path+=("${gem_bin}")
 done
 unset gem_bin
 
 export NODE_OPTIONS="${NODE_OPTIONS} --max_old_space_size=4096"
 
-# npm auth token (populated by npm login, read from ~/.npmrc). Only exported when
-# a token exists — empty values make npm and yarn send blank credentials instead
-# of falling back to anonymous access on registries that need no login.
-NODE_AUTH_TOKEN="$(grep -o '_authToken=.*' -m 1 "${HOME}/.npmrc" 2>/dev/null | sed 's/_authToken=//g')"
-if [ -n "${NODE_AUTH_TOKEN}" ]; then
-  export NODE_AUTH_TOKEN
-  export YARN_NPM_AUTH_IDENT="${NODE_AUTH_TOKEN}"
-  # For classic version of yarn as npm9_ doesn't support _auth in npmrc
-  export npm_config__auth="${NODE_AUTH_TOKEN}"
-else
-  unset NODE_AUTH_TOKEN
-fi
+# npm auth is machine-local state. Read it before the first command instead of
+# spawning grep and sed during every shell startup.
+_load_npm_auth() {
+  add-zsh-hook -d preexec _load_npm_auth
+
+  local line token="${NODE_AUTH_TOKEN-}"
+  if [[ -z "${token}" && -r "${HOME}/.npmrc" ]]; then
+    while IFS= read -r line; do
+      case "${line}" in
+        *_authToken=*) token="${line#*_authToken=}" ;;
+      esac
+    done < "${HOME}/.npmrc"
+  fi
+
+  if [[ -n "${token}" ]]; then
+    export NODE_AUTH_TOKEN="${token}"
+    export YARN_NPM_AUTH_IDENT="${token}"
+    # For classic version of yarn as npm9_ doesn't support _auth in npmrc
+    export npm_config__auth="${token}"
+  else
+    unset NODE_AUTH_TOKEN
+  fi
+}
+
+autoload -Uz add-zsh-hook
+add-zsh-hook preexec _load_npm_auth
 
 # Set Android paths
 export ANDROID_HOME="${ANDROID_HOME:-"${HOMEBREW_PREFIX}/share/android-commandlinetools"}"
 export ANDROID_SDK_ROOT="${ANDROID_HOME}"
-export PATH="${ANDROID_HOME}/platform-tools/:${PATH}"
-export PATH="${ANDROID_HOME}/cmdline-tools/latest/bin/:${PATH}"
-export PATH="${ANDROID_HOME}/emulator:${PATH}"
+path=(
+  "${ANDROID_HOME}/emulator"
+  "${ANDROID_HOME}/cmdline-tools/latest/bin"
+  "${ANDROID_HOME}/platform-tools"
+  $path
+)
 
 # Set the gradle path
 export GRADLE_USER_HOME="${GRADLE_USER_HOME:-"${HOME}/.gradle"}"
@@ -71,9 +104,17 @@ export ANDROID_AVD_NAME="pixel_9_api_36"
 
 export EDITOR="vim"
 
-export XDG_CONFIG_HOME="${HOME}/.config"
-
-export LS_COLORS=$(vivid generate catppuccin-mocha)
+typeset ls_colors_cache="${XDG_CACHE_HOME:-${HOME}/.cache}/zsh/ls-colors"
+if [[ ! -r "${ls_colors_cache}" ]] && (( $+commands[vivid] )); then
+  mkdir -p -- "${ls_colors_cache:h}" &&
+    vivid generate catppuccin-mocha >| "${ls_colors_cache}" ||
+    rm -f -- "${ls_colors_cache}"
+fi
+if [[ -r "${ls_colors_cache}" ]]; then
+  IFS= read -r LS_COLORS < "${ls_colors_cache}"
+  export LS_COLORS
+fi
+unset ls_colors_cache
 
 # Keep enough history for interactive search across concurrent shell sessions.
 HISTFILE=~/.zsh_history
@@ -87,8 +128,22 @@ setopt HIST_REDUCE_BLANKS
 ulimit -n 524288
 
 # initialize antidote plugins statically with ${ZDOTDIR:-~}/.zsh_plugins.txt
-source /opt/homebrew/opt/antidote/share/antidote/antidote.zsh
+source "${HOMEBREW_PREFIX}/opt/antidote/share/antidote/antidote.zsh"
+typeset zsh_compdump="${XDG_CACHE_HOME:-${HOME}/.cache}/zsh/zcompdump"
+typeset zsh_plugins="${ZDOTDIR:-${HOME}}/.zsh_plugins.txt"
+typeset zsh_plugins_static="${zsh_plugins:r}.zsh"
+if [[ ! -r "${zsh_compdump}" ||
+      "${zsh_plugins}" -nt "${zsh_compdump}" ||
+      "${zsh_plugins_static}" -nt "${zsh_compdump}" ]]; then
+  zstyle ':plugin:ez-compinit' use-cache no
+  rm -f -- "${zsh_compdump}" "${zsh_compdump}.zwc"
+else
+  zstyle ':plugin:ez-compinit' use-cache yes
+fi
+unset zsh_compdump zsh_plugins zsh_plugins_static
+zstyle ':antidote:bundle:jgornick/wtint' defer-options '-t 0.5'
 antidote load
+source "${XDG_CONFIG_HOME}/zsh/carapace.zsh"
 
 # zsh-history-substring-search is loaded above through antidote.
 bindkey '^[[A' history-substring-search-up
@@ -109,14 +164,38 @@ source "${XDG_CONFIG_HOME}/zsh/dots.zsh"
 
 eval "$(starship init zsh)"
 
-eval "$(proto activate zsh)"
+_dotfiles_proto_activate() {
+  (( ${+_DOTFILES_PROTO_ACTIVATED} )) && return 0
+  eval "$(proto activate zsh)" || return 1
+  add-zsh-hook -d precmd proto_activate
+  typeset -g _DOTFILES_PROTO_ACTIVATED=1
+}
 
-# worktrunk — wraps `wt` in a shell function so the binary can hand back cd and
-# exec directives, and registers completions (compinit already ran via
-# ez-compinit during `antidote load` above). `command wt` is required: once the
-# function exists, a bare `wt` here would re-enter the wrapper instead of the
-# binary. Guarded so a machine without worktrunk still gets a working shell.
-if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
+_dotfiles_worktrunk_activate() {
+  (( ${+_DOTFILES_WORKTRUNK_ACTIVATED} )) && return 0
+  (( $+commands[wt] )) || return 0
+  eval "$(command wt config shell init zsh)" || return 1
+  typeset -g _DOTFILES_WORKTRUNK_ACTIVATED=1
+}
+
+# Proto installs directory-change and prompt hooks that must exist before a
+# command can select a runtime version.
+_dotfiles_proto_activate || print -ru2 -- 'zsh: proto activation failed'
+
+# Defer Worktrunk until zle is idle, but keep it usable before then.
+if (( $+commands[wt] )); then
+  wt() {
+    unfunction wt
+    _dotfiles_worktrunk_activate || return
+    wt "$@"
+  }
+
+  if (( $+functions[zsh-defer] )); then
+    zsh-defer -2 -t 0.5 -c '_dotfiles_worktrunk_activate'
+  else
+    _dotfiles_worktrunk_activate
+  fi
+fi
 
 # Machine-local overrides and secrets (not managed by chezmoi)
 [ -f "${HOME}/.zshrc.local" ] && source "${HOME}/.zshrc.local"

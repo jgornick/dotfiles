@@ -35,6 +35,27 @@ Special pieces:
 - **`lefthook.yml`** — betterleaks scans every commit for secrets (run
   `lefthook install` once after cloning).
 
+### Shell performance
+
+The managed zsh configuration defers optional work so the first prompt stays
+responsive:
+
+- Homebrew setup avoids spawning `brew shellenv` for every shell.
+- Worktrunk and worktree tinting initialize after the shell becomes idle, with
+  synchronous fallbacks when needed. Proto activation remains eager so
+  directory-specific runtime selection works before the first command, then
+  refreshes on directory changes instead of every prompt.
+- Completion definitions use a cached and compiled dump. Changing the
+  [plugin manifest](./private_dot_zsh_plugins.txt) invalidates the dump.
+- Carapace currently owns npm and Docker completion through cached generated
+  definitions. Extend that canary only after measuring another command.
+- Starship shows the current branch but does not run `git status` on every
+  prompt. Run `git status` when you need file-level state.
+- `LS_COLORS` is cached at `~/.cache/zsh/ls-colors`. Remove that file after
+  changing the Vivid theme.
+- npm authentication is read from the machine-local `~/.npmrc` before the first
+  command and never enters this repository.
+
 ## Machine-local files (never committed)
 
 Secrets and per-machine overrides live outside chezmoi entirely:
