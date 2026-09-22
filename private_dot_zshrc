@@ -104,17 +104,19 @@ export ANDROID_AVD_NAME="pixel_9_api_36"
 
 export EDITOR="vim"
 
-typeset ls_colors_cache="${XDG_CACHE_HOME:-${HOME}/.cache}/zsh/ls-colors"
-if [[ ! -r "${ls_colors_cache}" ]] && (( $+commands[vivid] )); then
-  mkdir -p -- "${ls_colors_cache:h}" &&
-    vivid generate catppuccin-mocha >| "${ls_colors_cache}" ||
-    rm -f -- "${ls_colors_cache}"
+if [[ ${ZSH_MINIMAL:-0} != 1 ]]; then
+  typeset ls_colors_cache="${XDG_CACHE_HOME:-${HOME}/.cache}/zsh/ls-colors"
+  if [[ ! -r "${ls_colors_cache}" ]] && (( $+commands[vivid] )); then
+    mkdir -p -- "${ls_colors_cache:h}" &&
+      vivid generate catppuccin-mocha >| "${ls_colors_cache}" ||
+      rm -f -- "${ls_colors_cache}"
+  fi
+  if [[ -r "${ls_colors_cache}" ]]; then
+    IFS= read -r LS_COLORS < "${ls_colors_cache}"
+    export LS_COLORS
+  fi
+  unset ls_colors_cache
 fi
-if [[ -r "${ls_colors_cache}" ]]; then
-  IFS= read -r LS_COLORS < "${ls_colors_cache}"
-  export LS_COLORS
-fi
-unset ls_colors_cache
 
 # Keep enough history for interactive search across concurrent shell sessions.
 HISTFILE=~/.zsh_history
@@ -127,28 +129,42 @@ setopt HIST_REDUCE_BLANKS
 
 ulimit -n 524288
 
-# initialize antidote plugins statically with ${ZDOTDIR:-~}/.zsh_plugins.txt
-source "${HOMEBREW_PREFIX}/opt/antidote/share/antidote/antidote.zsh"
-typeset zsh_compdump="${XDG_CACHE_HOME:-${HOME}/.cache}/zsh/zcompdump"
-typeset zsh_plugins="${ZDOTDIR:-${HOME}}/.zsh_plugins.txt"
-typeset zsh_plugins_static="${zsh_plugins:r}.zsh"
-if [[ ! -r "${zsh_compdump}" ||
-      "${zsh_plugins}" -nt "${zsh_compdump}" ||
-      "${zsh_plugins_static}" -nt "${zsh_compdump}" ]]; then
-  zstyle ':plugin:ez-compinit' use-cache no
-  rm -f -- "${zsh_compdump}" "${zsh_compdump}.zwc"
+if [[ ${ZSH_MINIMAL:-0} != 1 ]]; then
+  # initialize antidote plugins statically with ${ZDOTDIR:-~}/.zsh_plugins.txt
+  source "${HOMEBREW_PREFIX}/opt/antidote/share/antidote/antidote.zsh"
+  typeset zsh_compdump="${XDG_CACHE_HOME:-${HOME}/.cache}/zsh/zcompdump"
+  typeset zsh_plugins="${ZDOTDIR:-${HOME}}/.zsh_plugins.txt"
+  typeset zsh_plugins_static="${zsh_plugins:r}.zsh"
+  if [[ ! -r "${zsh_compdump}" ||
+        "${zsh_plugins}" -nt "${zsh_compdump}" ||
+        "${zsh_plugins_static}" -nt "${zsh_compdump}" ]]; then
+    zstyle ':plugin:ez-compinit' use-cache no
+    rm -f -- "${zsh_compdump}" "${zsh_compdump}.zwc"
+  else
+    zstyle ':plugin:ez-compinit' use-cache yes
+  fi
+  unset zsh_compdump zsh_plugins zsh_plugins_static
+  zstyle ':antidote:bundle:jgornick/wtint' defer-options '-t 0.5'
+  zstyle ':antidote:static' zcompile yes
+  antidote load
+  source "${XDG_CONFIG_HOME}/zsh/carapace.zsh"
 else
-  zstyle ':plugin:ez-compinit' use-cache yes
+  typeset minimal_compdump="${XDG_CACHE_HOME:-${HOME}/.cache}/zsh/zcompdump-minimal"
+  autoload -Uz compinit
+  if [[ -r "${minimal_compdump}" ]]; then
+    compinit -C -d "${minimal_compdump}"
+  else
+    compinit -i -d "${minimal_compdump}"
+  fi
+  unset minimal_compdump
 fi
-unset zsh_compdump zsh_plugins zsh_plugins_static
-zstyle ':antidote:bundle:jgornick/wtint' defer-options '-t 0.5'
-antidote load
-source "${XDG_CONFIG_HOME}/zsh/carapace.zsh"
 
-# zsh-history-substring-search is loaded above through antidote.
-bindkey '^[[A' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
-HISTORY_SUBSTRING_SEARCH_ENSURE_UNIQUE=1
+if [[ ${ZSH_MINIMAL:-0} != 1 ]]; then
+  # zsh-history-substring-search is loaded above through antidote.
+  bindkey '^[[A' history-substring-search-up
+  bindkey '^[[B' history-substring-search-down
+  HISTORY_SUBSTRING_SEARCH_ENSURE_UNIQUE=1
+fi
 
 alias ..='cd ../'
 alias ...='cd ../..'
@@ -159,6 +175,7 @@ alias ......='cd ../../../../..'
 alias grep='grep --color=auto --exclude-dir={.bzr,CVS,.git,.hg,.svn,.idea,.tox,.venv,venv}'
 alias ls='ls -lAh --color'
 
+if [[ ${ZSH_MINIMAL:-0} != 1 ]]; then
 # dotfiles + prefs sync via chezmoi
 source "${XDG_CONFIG_HOME}/zsh/dots.zsh"
 
@@ -209,6 +226,10 @@ if (( $+commands[wt] )); then
   else
     _dotfiles_worktrunk_activate
   fi
+fi
+else
+  PROMPT='%~ %# '
+  unset RPROMPT
 fi
 
 # Machine-local overrides and secrets (not managed by chezmoi)

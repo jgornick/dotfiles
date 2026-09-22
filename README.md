@@ -44,8 +44,11 @@ responsive:
 - Worktrunk, worktree tinting, and Proto initialize after the shell becomes
   idle in a real terminal, with pre-command fallbacks. Non-TTY shells activate
   Proto eagerly for script compatibility.
+- Set `ZSH_MINIMAL=1` for a recovery or remote profile with native completion,
+  basic history, and local overrides but no optional plugins or integrations.
 - Completion definitions use a cached and compiled dump. Changing the
   [plugin manifest](./private_dot_zsh_plugins.txt) invalidates the dump.
+- Antidote's static plugin bundle is byte-compiled to reduce parsing overhead.
 - Carapace currently owns npm and Docker completion through cached generated
   definitions. Extend that canary only after measuring another command.
 - Starship shows the current branch but does not run `git status` on every
