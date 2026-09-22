@@ -49,7 +49,7 @@ responsive:
 - Completion definitions use a cached and compiled dump. Changing the
   [plugin manifest](./private_dot_zsh_plugins.txt) invalidates the dump.
 - Antidote's static plugin bundle is byte-compiled to reduce parsing overhead.
-- Carapace currently owns npm and Docker completion through cached generated
+- Carapace currently owns npm, pnpm, and Docker completion through cached generated
   definitions. Extend that canary only after measuring another command.
 - Starship shows the current branch but does not run `git status` on every
   prompt. Run `git status` when you need file-level state.

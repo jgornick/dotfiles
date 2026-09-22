@@ -4,7 +4,7 @@ if (( ! $+commands[carapace] )); then
 fi
 
 typeset binary="${commands[carapace]}"
-typeset -a carapace_commands=(npm docker)
+typeset -a carapace_commands=(npm pnpm docker)
 for command_name in "${carapace_commands[@]}"; do
   typeset cache="${XDG_CACHE_HOME:-${HOME}/.cache}/zsh/carapace-${command_name}.zsh"
   if [[ ! -r "${cache}" || "${binary}" -nt "${cache}" ]]; then
